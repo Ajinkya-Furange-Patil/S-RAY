@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Surveillance Dashboard</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;500;700&display=swap");
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #050510;
+        font-family: "Rajdhani", sans-serif;
+        color: white;
+      }
+
+      #canvas-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+
+      .glass-panel {
+        background: rgba(16, 20, 30, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(100, 200, 255, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+
+      .tech-border {
+        position: relative;
+      }
+
+      .tech-border::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00f0ff, transparent);
+        opacity: 0.5;
+      }
+
+      .tech-text {
+        font-family: "Orbitron", sans-serif;
+        letter-spacing: 2px;
+      }
+
+      .scanner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+        border: 1px solid rgba(0, 240, 255, 0.3);
+      }
+
+      .scan-line {
+        width: 100%;
+        height: 2px;
+        background: rgba(0, 240, 255, 0.8);
+        box-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+        position: absolute;
+        top: 0;
+        animation: scan 3s linear infinite;
+      }
+
+      @keyframes scan {
+        0% {
+          top: 0%;
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          top: 100%;
+          opacity: 0;
+        }
+      }
+
+      .corner {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-color: #00f0ff;
+        border-style: solid;
+      }
+      .tl {
+        top: 0;
+        left: 0;
+        border-width: 2px 0 0 2px;
+      }
+      .tr {
+        top: 0;
+        right: 0;
+        border-width: 2px 2px 0 0;
+      }
+      .bl {
+        bottom: 0;
+        left: 0;
+        border-width: 0 0 2px 2px;
+      }
+      .br {
+        bottom: 0;
+        right: 0;
+        border-width: 0 2px 2px 0;
+      }
+
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.3);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #00f0ff;
+        border-radius: 3px;
+      }
+
+      .stat-value {
+        text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+      }
+    </style>
+  </head>
+  <body class="h-screen w-screen flex flex-col p-4 gap-4">
+    <!-- 3D Background Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Hidden canvas used to capture webcam frames -->
+    <canvas id="captureCanvas" style="display: none;"></canvas>
+
+    <!-- Main Dashboard Grid -->
+    <div class="flex-1 grid grid-cols-12 gap-4 h-full relative z-10">
+      <!-- LEFT COLUMN: User Info -->
+      <div class="col-span-3 flex flex-col gap-4">
+        <!-- Logo Section -->
+        <div
+          class="glass-panel h-24 rounded-lg flex items-center justify-center tech-border relative overflow-hidden group"
+        >
+          <div
+            class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          ></div>
+          <div
+            class="w-12 h-12 border-2 border-dashed border-cyan-400/50 rounded flex items-center justify-center"
+          >
+            <span class="text-xs text-cyan-400/50">LOGO</span>
+          </div>
+        </div>
+
+        <!-- User Profile Section -->
+        <div
+          class="glass-panel flex-1 rounded-lg p-6 flex flex-col items-center relative overflow-hidden"
+        >
+          <div
+            class="w-24 h-24 rounded-full border-2 border-cyan-400 p-1 mb-4 relative"
+          >
+            <img
+              src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"
+              alt="User"
+              class="w-full h-full rounded-full bg-slate-800"
+            />
+            <div
+              class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse"
+            ></div>
+          </div>
+
+          <h2 class="text-2xl font-bold tech-text text-white">OFFICER SMITH</h2>
+          <p class="text-cyan-400/70 text-sm tracking-wider mb-6">
+            ID: #884-XJ-09
+          </p>
+
+          <div class="w-full space-y-4">
+            <div
+              class="flex justify-between items-center border-b border-white/10 pb-2"
+            >
+              <span class="text-gray-400">Status</span>
+              <span class="text-green-400 font-bold">ONLINE</span>
+            </div>
+            <div
+              class="flex justify-between items-center border-b border-white/10 pb-2"
+            >
+              <span class="text-gray-400">Unit</span>
+              <span class="text-white">Central Mon</span>
+            </div>
+            <div
+              class="flex justify-between items-center border-b border-white/10 pb-2"
+            >
+              <span class="text-gray-400">Shift</span>
+              <span class="text-white">Night Ops</span>
+            </div>
+          </div>
+
+          <div class="mt-auto w-full">
+            <div
+              class="bg-blue-500/10 p-3 rounded border border-blue-500/30 text-xs text-center text-blue-200"
+            >
+              <i data-lucide="shield-check" class="inline w-4 h-4 mr-1"></i>
+              System Secure
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MIDDLE COLUMN: Camera Feed -->
+      <div class="col-span-6 flex flex-col">
+        <div class="glass-panel flex-1 rounded-lg p-1 relative flex flex-col">
+          <!-- Header -->
+          <div
+            class="h-10 flex justify-between items-center px-4 bg-black/20 rounded-t mb-1"
+          >
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+              <span
+                class="text-red-500 font-bold tracking-widest text-xs"
+                id="live-label"
+                >LIVE FEED // CAM-01</span
+              >
+            </div>
+            <div class="text-xs text-cyan-400 font-mono" id="clock">
+              00:00:00
+            </div>
+          </div>
+
+          <!-- Video Area -->
+          <div class="flex-1 bg-black relative rounded overflow-hidden group">
+            <video
+              id="webcam"
+              autoplay
+              playsinline
+              muted
+              class="w-full h-full object-cover opacity-80"
+            ></video>
+
+            <!-- Fallback if camera denied/fails -->
+            <div
+              id="camera-placeholder"
+              class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 hidden"
+            >
+              <i
+                data-lucide="camera-off"
+                class="w-16 h-16 text-gray-700 mb-4"
+              ></i>
+              <p class="text-gray-500">Camera Feed Standby</p>
+              <button
+                onclick="startCamera()"
+                class="mt-4 px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold transition-colors"
+              >
+                ACTIVATE CAMERA
+              </button>
+            </div>
+
+            <!-- HUD Overlay -->
+            <div class="scanner-overlay">
+              <div class="scan-line"></div>
+              <div class="corner tl"></div>
+              <div class="corner tr"></div>
+              <div class="corner bl"></div>
+              <div class="corner br"></div>
+
+              <!-- Simulated Face Box -->
+              <div
+                id="detection-box"
+                class="absolute w-32 h-32 border border-green-400/60 hidden transition-all duration-300"
+              >
+                <div
+                  class="absolute -top-5 left-0 bg-green-500/80 text-black text-[10px] px-1 font-bold"
+                >
+                  MATCH 98%
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Controls -->
+          <div
+            class="h-12 bg-black/40 mt-1 rounded-b flex items-center justify-center gap-4"
+          >
+            <button
+              class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
+              title="Record"
+            >
+              <i data-lucide="disc" class="w-5 h-5"></i>
+            </button>
+            <button
+              class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
+              title="Screenshot"
+            >
+              <i data-lucide="camera" class="w-5 h-5"></i>
+            </button>
+            <button
+              class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
+              title="Settings"
+            >
+              <i data-lucide="sliders" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Stats & Safety -->
+      <div class="col-span-3 flex flex-col gap-4">
+        <!-- Results Section -->
+        <div class="glass-panel flex-1 rounded-lg p-6 flex flex-col">
+          <h3
+            class="text-xl tech-text text-cyan-400 mb-6 border-b border-cyan-500/30 pb-2"
+          >
+            DETECTION RESULTS
+          </h3>
+
+          <div class="flex-1 flex flex-col gap-6 justify-center">
+            <!-- Total Count -->
+            <div
+              class="bg-gradient-to-r from-blue-900/40 to-transparent p-4 rounded-l-lg border-l-4 border-blue-500"
+            >
+              <p class="text-sm text-gray-400 uppercase tracking-widest mb-1">
+                Total Persons
+              </p>
+              <div class="flex items-end gap-2">
+                <span
+                  id="total-count"
+                  class="text-5xl font-bold stat-value text-white"
+                  >0</span
+                >
+                <span class="text-sm text-blue-400 mb-2 font-mono"
+                  >detected</span
+                >
+              </div>
+            </div>
+
+            <!-- Demographics (placeholder) -->
+            <div class="space-y-4">
+              <div>
+                <div class="flex justify-between text-sm mb-1">
+                  <span class="text-pink-400"
+                    ><i data-lucide="users" class="inline w-3 h-3"></i>
+                    Female</span
+                  >
+                  <span id="female-percent" class="font-mono">—</span>
+                </div>
+                <div
+                  class="w-full bg-gray-700 h-2 rounded-full overflow-hidden"
+                >
+                  <div
+                    id="female-bar"
+                    class="bg-pink-500 h-full w-0 transition-all duration-1000"
+                  ></div>
+                </div>
+                <div
+                  class="text-right text-xs text-gray-500 mt-1"
+                  id="female-count"
+                >
+                  0
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-sm mb-1">
+                  <span class="text-blue-400"
+                    ><i data-lucide="users" class="inline w-3 h-3"></i>
+                    Male</span
+                  >
+                  <span id="male-percent" class="font-mono">—</span>
+                </div>
+                <div
+                  class="w-full bg-gray-700 h-2 rounded-full overflow-hidden"
+                >
+                  <div
+                    id="male-bar"
+                    class="bg-blue-500 h-full w-0 transition-all duration-1000"
+                  ></div>
+                </div>
+                <div
+                  class="text-right text-xs text-gray-500 mt-1"
+                  id="male-count"
+                >
+                  0
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Log -->
+          <div class="mt-6 h-32 overflow-hidden relative">
+            <div
+              class="absolute inset-0 bg-gradient-to-t from-gray-900/90 to-transparent pointer-events-none"
+            ></div>
+            <div
+              id="detection-log"
+              class="text-xs font-mono space-y-1 text-gray-400"
+            >
+              <p>[System] Ready for input...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Safety Redirect Section -->
+        <div
+          class="glass-panel h-24 rounded-lg p-4 flex items-center justify-between group hover:bg-red-900/20 transition-colors cursor-pointer border-red-500/20 hover:border-red-500/50"
+          onclick="window.location.href='#'"
+        >
+          <div>
+            <h4 class="text-red-400 font-bold text-lg tracking-wider">
+              SAFETY PROTOCOL
+            </h4>
+            <p class="text-xs text-red-300/60">Emergency Override & Reports</p>
+          </div>
+          <div
+            class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-all"
+          >
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let ws;
+      let video;
+      let canvas;
+      let ctx;
+
+      function updateClock() {
+        const clock = document.getElementById("clock");
+        const now = new Date();
+        clock.textContent = now.toLocaleTimeString("en-GB");
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      function startCamera() {
+        video = document.getElementById("webcam");
+        canvas = document.getElementById("captureCanvas");
+        ctx = canvas.getContext("2d");
+
+        navigator.mediaDevices
+          .getUserMedia({ video: true, audio: false })
+          .then((stream) => {
+            video.srcObject = stream;
+            document
+              .getElementById("camera-placeholder")
+              .classList.add("hidden");
+            connectWebSocket();
+
+            // ensure video metadata is loaded before capturing frames
+            video.onloadedmetadata = () => {
+              video.play();
+            };
+          })
+          .catch((err) => {
+            console.error(err);
+            alert("Camera access denied or failed.");
+            document
+              .getElementById("camera-placeholder")
+              .classList.remove("hidden");
+          });
+      }
+
+      function connectWebSocket() {
+        ws = new WebSocket("ws://localhost:8000/ws");
+
+        ws.onopen = () => {
+          addLog("WebSocket connected");
+          sendFrames();
+        };
+
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+
+          // Update total count
+          document.getElementById("total-count").innerText = data.count;
+
+          // Since YOLO doesn't classify gender, keep placeholders
+          document.getElementById("male-count").innerText = 0;
+          document.getElementById("female-count").innerText = 0;
+          document.getElementById("male-bar").style.width = "0%";
+          document.getElementById("female-bar").style.width = "0%";
+          document.getElementById("male-percent").innerText = "—";
+          document.getElementById("female-percent").innerText = "—";
+
+          // Detection log
+          addLog(`People detected: ${data.count} | FPS: ${data.fps}`);
+
+          // HUD detection box (first person only)
+          const box = document.getElementById("detection-box");
+          if (data.people && data.people.length > 0 && video.videoWidth > 0) {
+            const p = data.people[0];
+            box.style.display = "block";
+            const cx = p.centroid[0];
+            const cy = p.centroid[1];
+            box.style.left = (cx / video.videoWidth) * 100 + "%";
+            box.style.top = (cy / video.videoHeight) * 100 + "%";
+          } else {
+            box.style.display = "none";
+          }
+        };
+
+        ws.onclose = () => {
+          addLog("WebSocket disconnected");
+        };
+
+        ws.onerror = (err) => {
+          console.error("WebSocket error:", err);
+          addLog("WebSocket error");
+        };
+      }
+
+      function sendFrames() {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          requestAnimationFrame(sendFrames);
+          return;
+        }
+
+        if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+          requestAnimationFrame(sendFrames);
+          return;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const frameData = canvas.toDataURL("image/jpeg", 0.6);
+        const base64Data = frameData.split(",")[1];
+        ws.send(JSON.stringify({ frame: base64Data }));
+
+        requestAnimationFrame(sendFrames);
+      }
+
+      function addLog(msg) {
+        const log = document.getElementById("detection-log");
+        const time = new Date().toLocaleTimeString("en-GB");
+        const p = document.createElement("p");
+        p.textContent = `[${time}] ${msg}`;
+        log.prepend(p);
+        if (log.children.length > 6) log.lastChild.remove();
+      }
+
+      // Auto-start camera on load
+      window.addEventListener("load", () => {
+        startCamera();
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      });
+    </script>
+  </body>
+</html>
