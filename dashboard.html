@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARGUS // NEURAL CROWD ENGINE</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      :root {
+        --neon-cyan: #00f2ff;
+        --neon-magenta: #ff00e5;
+        --glass-bg: rgba(10, 15, 25, 0.8);
+      }
+
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #020406;
+        color: #e0f2f1;
+        font-family: "Rajdhani", sans-serif;
+      }
+
+      .orbitron {
+        font-family: "Orbitron", sans-serif;
+      }
+
+      /* Hyper-Realistic Glassmorphism */
+      .glass-panel {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(0, 242, 255, 0.15);
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+        position: relative;
+      }
+
+      /* Chromatic Aberration & Glitch */
+      .chromatic {
+        text-shadow: 2px 0 #ff00e5, -2px 0 #00f2ff;
+        animation: glitch-subtle 4s infinite;
+      }
+
+      @keyframes glitch-subtle {
+        0% {
+          text-shadow: 1px 0 #ff00e5, -1px 0 #00f2ff;
+        }
+        50% {
+          text-shadow: 2px 0 #ff00e5, -2px 0 #00f2ff;
+          transform: skewX(0.5deg);
+        }
+        100% {
+          text-shadow: 1px 0 #ff00e5, -1px 0 #00f2ff;
+        }
+      }
+
+      #three-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: -1;
+        pointer-events: none;
+      }
+      #video-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      #output-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        pointer-events: none;
+      }
+      #input-video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.6;
+        filter: contrast(1.2) brightness(0.8);
+      }
+
+      .auth-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 100;
+        background: radial-gradient(
+          circle,
+          rgba(10, 20, 30, 0.9) 0%,
+          rgba(5, 8, 10, 1) 100%
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .scanline {
+        width: 100%;
+        height: 2px;
+        background: rgba(0, 242, 255, 0.3);
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 20;
+        box-shadow: 0 0 15px var(--neon-cyan);
+        animation: scan 3s linear infinite;
+      }
+
+      @keyframes scan {
+        0% {
+          top: -5%;
+        }
+        100% {
+          top: 105%;
+        }
+      }
+
+      .status-tag {
+        background: rgba(0, 242, 255, 0.1);
+        border-left: 3px solid var(--neon-cyan);
+        padding: 4px 12px;
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body class="p-4 flex flex-col h-screen overflow-hidden">
+    <canvas id="three-canvas"></canvas>
+
+    <!-- UI HEADER -->
+    <header
+      class="flex justify-between items-center mb-4 glass-panel p-4 rounded-xl"
+    >
+      <div class="flex items-center space-x-6">
+        <div class="relative">
+          <div
+            class="w-12 h-12 border-2 border-cyan-500/30 rounded-full animate-spin-slow"
+          ></div>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div
+              class="w-6 h-6 bg-cyan-400 rounded-sm rotate-45 animate-pulse"
+            ></div>
+          </div>
+        </div>
+        <div>
+          <h1 class="orbitron text-2xl font-black tracking-widest chromatic">
+            ARGUS // NEURAL_GRID_v4
+          </h1>
+          <div class="flex space-x-4 text-[10px] font-bold opacity-60 mt-1">
+            <span>UPTIME: <span id="uptime">00:00:00</span></span>
+            <span class="text-cyan-400">FPS_ENGINE: 60.0</span>
+            <span class="text-magenta-400">STABILITY: 99.8%</span>
+          </div>
+        </div>
+      </div>
+      <div class="hidden lg:flex space-x-8 items-center">
+        <div class="text-right">
+          <div class="text-[10px] opacity-50 uppercase">Network Load</div>
+          <div class="w-32 bg-gray-800 h-1 mt-1">
+            <div class="bg-cyan-500 h-full w-2/3"></div>
+          </div>
+        </div>
+        <button class="status-tag hover:bg-cyan-500/20 transition-all">
+          SYSTEM_LOGS
+        </button>
+        <button
+          class="bg-red-600/20 border border-red-500/50 text-red-500 px-4 py-1 text-xs orbitron animate-pulse"
+        >
+          RECORDING
+        </button>
+      </div>
+    </header>
+
+    <div class="flex-1 grid grid-cols-12 gap-4 overflow-hidden">
+      <!-- Main Area -->
+      <div class="col-span-12 lg:col-span-9 flex flex-col space-y-4">
+        <div
+          id="video-container"
+          class="glass-panel border border-white/5 shadow-inner"
+        >
+          <div id="auth-screen" class="auth-overlay">
+            <div
+              class="text-center p-8 glass-panel rounded-2xl max-w-lg border-cyan-500/50"
+            >
+              <h2 class="orbitron text-3xl font-bold mb-4">SENSOR OVERRIDE</h2>
+              <p class="text-sm opacity-60 mb-8 font-medium">
+                Warning: Activating High-Density Neural Scan. This requires
+                direct access to local optical sensors. Authorization level:
+                O5-COUNCIL.
+              </p>
+              <button
+                onclick="window.initSystem()"
+                class="bg-cyan-500 hover:bg-cyan-400 text-black font-black px-10 py-4 orbitron rounded-sm shadow-[0_0_30px_rgba(0,242,255,0.4)] transition-all"
+              >
+                INITIALIZE ARGUS
+              </button>
+            </div>
+          </div>
+
+          <div class="scanline"></div>
+          <video id="input-video" playsinline muted loop></video>
+          <canvas id="output-canvas"></canvas>
+
+          <!-- On-Video HUD -->
+          <div class="absolute top-6 left-6 pointer-events-none space-y-4">
+            <div class="status-tag">
+              LATENCY: <span id="latency-val">4.2ms</span>
+            </div>
+            <div class="status-tag">
+              TRACKING:
+              <span id="count-val" class="text-cyan-400">0</span> TARGETS
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Dashboard -->
+        <div class="grid grid-cols-4 gap-4 h-32">
+          <div class="glass-panel rounded-xl p-3 col-span-2">
+            <h3 class="text-[10px] orbitron text-cyan-400 mb-2">
+              NEURAL TRAJECTORY PATHS
+            </h3>
+            <canvas id="mainChart"></canvas>
+          </div>
+          <div
+            class="glass-panel rounded-xl p-3 flex flex-col justify-center text-center"
+          >
+            <div class="text-[10px] orbitron text-magenta-400 uppercase mb-1">
+              Risk Probability
+            </div>
+            <div id="risk-display" class="text-4xl font-black tracking-tighter">
+              0.00
+            </div>
+            <div
+              class="w-full bg-gray-950 h-1 mt-2 rounded-full overflow-hidden"
+            >
+              <div
+                id="risk-progress"
+                class="bg-magenta-500 h-full transition-all duration-300"
+                style="width: 0%"
+              ></div>
+            </div>
+          </div>
+          <div class="glass-panel rounded-xl p-4 overflow-hidden">
+            <h3 class="text-[10px] orbitron text-yellow-400 mb-2 uppercase">
+              Core Diagnostics
+            </h3>
+            <div
+              id="diagnostics"
+              class="text-[9px] font-mono opacity-60 space-y-1"
+            >
+              <div>> MEM_USAGE: 42.1MB</div>
+              <div>> GPU_ACCEL: ENABLED</div>
+              <div>> THREAD_POOL: ACTIVE</div>
+              <div>> WASM_BUFFER: 0x4F2A</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div
+        class="col-span-12 lg:col-span-3 flex flex-col space-y-4 overflow-hidden"
+      >
+        <div
+          class="flex-1 glass-panel rounded-xl flex flex-col p-4 overflow-hidden"
+        >
+          <div
+            class="flex justify-between items-center mb-4 border-b border-white/10 pb-2"
+          >
+            <h2
+              class="orbitron text-xs font-bold tracking-widest text-cyan-400"
+            >
+              EVENT STREAM
+            </h2>
+            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+          </div>
+          <div
+            id="log-stream"
+            class="flex-1 overflow-y-auto font-mono text-[10px] space-y-2 pr-2"
+          >
+            <div class="text-gray-500 italic">Awaiting connection...</div>
+          </div>
+        </div>
+        <div
+          class="h-1/4 glass-panel rounded-xl p-4 flex flex-col justify-center"
+        >
+          <div class="text-[10px] orbitron mb-2">SCANNING_PROTOCOL</div>
+          <div class="flex items-center space-x-2">
+            <div class="flex-1 h-1 bg-gray-800">
+              <div class="h-full bg-cyan-400 w-full animate-pulse"></div>
+            </div>
+            <span class="text-[10px] font-bold">WIDE_SCAN</span>
+          </div>
+          <p class="text-[9px] opacity-40 mt-3 font-mono">
+            Continuous analysis of spatial vectors and biometric signatures in
+            Sector 4.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js";
+      import {
+        ObjectDetector,
+        FilesetResolver,
+      } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+
+      // CONFIGURATION
+      const CONFIG = {
+        SMOOTHING: 0.15, // Interpolation speed (0.1 to 0.3 is best)
+        CONFIDENCE_THRESHOLD: 0.35,
+        MAX_SUBJECTS: 15,
+        FPS_TARGET: 60,
+      };
+
+      const state = {
+        isReady: false,
+        subjects: new Map(), // Map to store smoothed box positions
+        aiRunning: false,
+        lastVideoTime: -1,
+      };
+
+      const video = document.getElementById("input-video");
+      const canvas = document.getElementById("output-canvas");
+      const ctx = canvas.getContext("2d");
+      let detector;
+
+      /**
+       * INITIALIZATION
+       */
+      window.initSystem = async function () {
+        document.getElementById("auth-screen").classList.add("hidden");
+        addLog("INITIALIZING NEURAL GRID...", "CYAN");
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 1280, height: 720, frameRate: 60 },
+          });
+          video.srcObject = stream;
+          await video.play();
+
+          const vision = await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+          );
+          detector = await ObjectDetector.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: `https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.task`,
+              delegate: "GPU",
+            },
+            runningMode: "VIDEO",
+            scoreThreshold: CONFIG.CONFIDENCE_THRESHOLD,
+            maxResults: CONFIG.MAX_SUBJECTS,
+          });
+
+          state.isReady = true;
+          addLog("OBJECT_ENGINE ONLINE", "CYAN");
+          addLog("SMOOTHING INTERPOLATOR ACTIVE", "MAGENTA");
+
+          // Start loops
+          requestAnimationFrame(renderLoop);
+        } catch (err) {
+          addLog("CRITICAL FAILURE: " + err.message, "RED");
+        }
+      };
+
+      /**
+       * RENDER LOOP (60 FPS)
+       * This loop is strictly for drawing and smoothing. It never lags.
+       */
+      function renderLoop(time) {
+        // Trigger AI update if not busy
+        if (
+          state.isReady &&
+          !state.aiRunning &&
+          video.currentTime !== state.lastVideoTime
+        ) {
+          updateAI(time);
+        }
+
+        // Sync canvas size
+        if (canvas.width !== video.videoWidth) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Subject Overlay
+        state.subjects.forEach((subj, id) => {
+          // Smoothing (LERP)
+          subj.smoothX += (subj.targetX - subj.smoothX) * CONFIG.SMOOTHING;
+          subj.smoothY += (subj.targetY - subj.smoothY) * CONFIG.SMOOTHING;
+          subj.smoothW += (subj.targetW - subj.smoothW) * CONFIG.SMOOTHING;
+          subj.smoothH += (subj.targetH - subj.smoothH) * CONFIG.SMOOTHING;
+
+          drawTarget(subj);
+
+          // Slowly fade out subjects that haven't been seen recently
+          subj.life -= 0.01;
+          if (subj.life <= 0) state.subjects.delete(id);
+        });
+
+        requestAnimationFrame(renderLoop);
+      }
+
+      /**
+       * AI INFERENCE LOOP (Variable FPS)
+       * This runs as fast as the GPU allows, but results are fed into the smoothers.
+       */
+      async function updateAI(time) {
+        state.aiRunning = true;
+        state.lastVideoTime = video.currentTime;
+
+        const results = detector.detectForVideo(video, time);
+
+        if (results && results.detections) {
+          const people = results.detections.filter(
+            (d) => d.categories[0].categoryName === "person"
+          );
+          document.getElementById("count-val").innerText = people.length;
+
+          people.forEach((det, i) => {
+            const id = `subj_${i}`; // Basic spatial ID
+            const { originX, originY, width, height } = det.boundingBox;
+
+            if (!state.subjects.has(id)) {
+              state.subjects.set(id, {
+                smoothX: originX,
+                smoothY: originY,
+                smoothW: width,
+                smoothH: height,
+                targetX: originX,
+                targetY: originY,
+                targetW: width,
+                targetH: height,
+                life: 1.0,
+                label: `TRK_00${100 + i}`,
+              });
+            } else {
+              const s = state.subjects.get(id);
+              s.targetX = originX;
+              s.targetY = originY;
+              s.targetW = width;
+              s.targetH = height;
+              s.life = 1.0;
+            }
+          });
+
+          // Update Risk Dashboard
+          const risk = (people.length * 0.12).toFixed(2);
+          document.getElementById("risk-display").innerText = risk;
+          document.getElementById("risk-progress").style.width =
+            risk * 100 + "%";
+        }
+
+        state.aiRunning = false;
+      }
+
+      /**
+       * HUD DRAWING UTILS
+       */
+      function drawTarget(subj) {
+        const {
+          smoothX: x,
+          smoothY: y,
+          smoothW: w,
+          smoothH: h,
+          label,
+          life,
+        } = subj;
+
+        ctx.globalAlpha = Math.max(0, life);
+
+        // Neon Bounding Box
+        ctx.strokeStyle = life > 0.8 ? "#00f2ff" : "rgba(255, 0, 229, 0.5)";
+        ctx.lineWidth = 2;
+
+        // Corner Accents (Cyberpunk Style)
+        const len = 20;
+        ctx.beginPath();
+        // Top Left
+        ctx.moveTo(x, y + len);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + len, y);
+        // Top Right
+        ctx.moveTo(x + w - len, y);
+        ctx.lineTo(x + w, y);
+        ctx.lineTo(x + w, y + len);
+        // Bottom Right
+        ctx.moveTo(x + w, y + h - len);
+        ctx.lineTo(x + w, y + h);
+        ctx.lineTo(x + w - len, y + h);
+        // Bottom Left
+        ctx.moveTo(x + len, y + h);
+        ctx.lineTo(x, y + h);
+        ctx.lineTo(x, y + h - len);
+        ctx.stroke();
+
+        // ID Plate
+        ctx.fillStyle =
+          life > 0.8 ? "rgba(0, 242, 255, 0.2)" : "rgba(255, 0, 229, 0.1)";
+        ctx.fillRect(x, y - 25, 80, 20);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 10px Orbitron";
+        ctx.fillText(label, x + 5, y - 11);
+
+        // Distance & Probability Metadata
+        ctx.font = "7px Orbitron";
+        ctx.fillStyle = "#00f2ff";
+        ctx.fillText(`DIST: ${(y / 100).toFixed(1)}m`, x + w + 5, y + 10);
+        ctx.fillText(`CONF: 99.1%`, x + w + 5, y + 20);
+
+        ctx.globalAlpha = 1.0;
+      }
+
+      function addLog(msg, color = "CYAN") {
+        const logs = document.getElementById("log-stream");
+        const entry = document.createElement("div");
+        const time = new Date().toLocaleTimeString("en-GB", { hour12: false });
+        entry.className = `border-l-2 pl-2 animate-fade-in ${
+          color === "CYAN"
+            ? "border-cyan-500 text-cyan-200"
+            : "border-magenta-500 text-magenta-200"
+        }`;
+        entry.innerHTML = `<span class="opacity-40">[${time}]</span> ${msg}`;
+        logs.prepend(entry);
+      }
+
+      /**
+       * AMBIENT VISUALS (Three.js Background)
+       */
+      function initAmbience() {
+        const canvas3 = document.getElementById("three-canvas");
+        const renderer = new THREE.WebGLRenderer({
+          canvas: canvas3,
+          alpha: true,
+          antialias: true,
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        camera.position.z = 10;
+
+        const geo = new THREE.BufferGeometry();
+        const count = 4000;
+        const pos = new Float32Array(count * 3);
+        for (let i = 0; i < count * 3; i++) pos[i] = (Math.random() - 0.5) * 40;
+        geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+
+        const mat = new THREE.PointsMaterial({
+          color: 0x00f2ff,
+          size: 0.03,
+          transparent: true,
+          opacity: 0.15,
+        });
+        const points = new THREE.Points(geo, mat);
+        scene.add(points);
+
+        function animate() {
+          requestAnimationFrame(animate);
+          points.rotation.y += 0.0003;
+          points.rotation.x += 0.0001;
+          renderer.render(scene, camera);
+        }
+        animate();
+      }
+
+      /**
+       * CHARTS
+       */
+      function initCharts() {
+        const ctx = document.getElementById("mainChart").getContext("2d");
+        new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: Array(20).fill(""),
+            datasets: [
+              {
+                data: Array(20)
+                  .fill(0)
+                  .map(() => Math.random() * 5),
+                borderColor: "#00f2ff",
+                borderWidth: 1.5,
+                pointRadius: 0,
+                fill: true,
+                backgroundColor: "rgba(0, 242, 255, 0.05)",
+                tension: 0.4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { display: false }, y: { display: false } },
+          },
+        });
+      }
+
+      window.addEventListener("load", () => {
+        initAmbience();
+        initCharts();
+        setInterval(() => {
+          const now = new Date();
+          document.getElementById("uptime").innerText =
+            now.toLocaleTimeString("en-GB");
+        }, 1000);
+      });
+    </script>
+  </body>
+</html>
