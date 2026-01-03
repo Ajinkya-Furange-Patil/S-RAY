@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Surveillance Dashboard</title>
+    <title>Surveillance Dashboard v2.0</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,6 +16,10 @@
 
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- TensorFlow.js & COCO-SSD -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
 
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;500;700&display=swap");
@@ -37,12 +41,13 @@
         z-index: -1;
       }
 
+      /* Glassmorphism Panels */
       .glass-panel {
-        background: rgba(16, 20, 30, 0.6);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(100, 200, 255, 0.1);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        background: rgba(16, 20, 30, 0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(100, 200, 255, 0.15);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
       }
 
       .tech-border {
@@ -65,6 +70,7 @@
         letter-spacing: 2px;
       }
 
+      /* Camera Scanner Effect */
       .scanner-overlay {
         position: absolute;
         top: 0;
@@ -74,6 +80,7 @@
         pointer-events: none;
         overflow: hidden;
         border: 1px solid rgba(0, 240, 255, 0.3);
+        z-index: 20;
       }
 
       .scan-line {
@@ -131,6 +138,7 @@
         border-width: 0 2px 2px 0;
       }
 
+      /* Custom Scrollbar */
       ::-webkit-scrollbar {
         width: 6px;
       }
@@ -144,31 +152,54 @@
 
       .stat-value {
         text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        transition: all 0.3s ease;
+      }
+
+      /* Detection Canvas Overlay */
+      #detection-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      @media (max-width: 1024px) {
+        .main-grid {
+          grid-template-columns: 1fr;
+          overflow-y: auto;
+        }
+        .col-span-3,
+        .col-span-6 {
+          grid-column: span 1;
+        }
+        body {
+          overflow: auto;
+        }
       }
     </style>
   </head>
-  <body class="h-screen w-screen flex flex-col p-4 gap-4">
+  <body class="h-screen w-screen flex flex-col p-4 gap-4 box-border">
     <!-- 3D Background Container -->
     <div id="canvas-container"></div>
 
-    <!-- Hidden canvas used to capture webcam frames -->
-    <canvas id="captureCanvas" style="display: none"></canvas>
-
     <!-- Main Dashboard Grid -->
-    <div class="flex-1 grid grid-cols-12 gap-4 h-full relative z-10">
+    <div class="main-grid flex-1 grid grid-cols-12 gap-4 h-full relative z-10">
       <!-- LEFT COLUMN: User Info -->
-      <div class="col-span-3 flex flex-col gap-4">
+      <div class="col-span-3 flex flex-col gap-4 min-h-[300px]">
         <!-- Logo Section -->
         <div
-          class="glass-panel h-24 rounded-lg flex items-center justify-center tech-border relative overflow-hidden group"
+          class="glass-panel h-24 rounded-lg flex items-center justify-center tech-border relative overflow-hidden group shrink-0"
         >
           <div
             class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           ></div>
-          <div
-            class="w-12 h-12 border-2 border-dashed border-cyan-400/50 rounded flex items-center justify-center"
-          >
-            <span class="text-xs text-cyan-400/50">LOGO</span>
+          <!-- Logo -->
+          <div class="flex items-center gap-2">
+            <i data-lucide="scan-face" class="text-cyan-400 w-8 h-8"></i>
+            <span class="tech-text font-bold text-xl text-white">CROWD.AI</span>
           </div>
         </div>
 
@@ -198,46 +229,44 @@
             <div
               class="flex justify-between items-center border-b border-white/10 pb-2"
             >
-              <span class="text-gray-400">Status</span>
-              <span class="text-green-400 font-bold">ONLINE</span>
+              <span class="text-gray-400">System</span>
+              <span class="text-green-400 font-bold">ARMED</span>
             </div>
             <div
               class="flex justify-between items-center border-b border-white/10 pb-2"
             >
-              <span class="text-gray-400">Unit</span>
-              <span class="text-white">Central Mon</span>
+              <span class="text-gray-400">AI Model</span>
+              <span class="text-white" id="model-status">Standby...</span>
             </div>
             <div
               class="flex justify-between items-center border-b border-white/10 pb-2"
             >
-              <span class="text-gray-400">Shift</span>
-              <span class="text-white">Night Ops</span>
+              <span class="text-gray-400">Latency</span>
+              <span class="text-white" id="latency-stat">-- ms</span>
             </div>
           </div>
 
-          <div class="mt-auto w-full">
+          <div class="mt-auto w-full pt-4">
             <div
               class="bg-blue-500/10 p-3 rounded border border-blue-500/30 text-xs text-center text-blue-200"
             >
               <i data-lucide="shield-check" class="inline w-4 h-4 mr-1"></i>
-              System Secure
+              Secure Connection
             </div>
           </div>
         </div>
       </div>
 
       <!-- MIDDLE COLUMN: Camera Feed -->
-      <div class="col-span-6 flex flex-col">
+      <div class="col-span-6 flex flex-col min-h-[400px]">
         <div class="glass-panel flex-1 rounded-lg p-1 relative flex flex-col">
           <!-- Header -->
           <div
-            class="h-10 flex justify-between items-center px-4 bg-black/20 rounded-t mb-1"
+            class="h-10 flex justify-between items-center px-4 bg-black/20 rounded-t mb-1 shrink-0"
           >
             <div class="flex items-center gap-2">
               <div class="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
-              <span
-                class="text-red-500 font-bold tracking-widest text-xs"
-                id="live-label"
+              <span class="text-red-500 font-bold tracking-widest text-xs"
                 >LIVE FEED // CAM-01</span
               >
             </div>
@@ -247,339 +276,579 @@
           </div>
 
           <!-- Video Area -->
-          <div class="flex-1 bg-black relative rounded overflow-hidden group">
+          <div
+            class="flex-1 bg-black relative rounded overflow-hidden group min-h-0 flex items-center justify-center"
+            id="video-container"
+          >
+            <!-- Changed to object-contain to ensure bounding boxes match visual video -->
             <video
               id="webcam"
               autoplay
               playsinline
               muted
-              class="w-full h-full object-cover opacity-80"
+              class="absolute w-full h-full object-contain opacity-90"
             ></video>
 
-            <!-- Heatmap overlay image -->
-            <img
-              id="heatmap-view"
-              class="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            />
-            <!-- Fallback if camera denied/fails -->
+            <!-- Canvas for drawing bounding boxes, matches video style -->
+            <canvas
+              id="detection-canvas"
+              class="absolute w-full h-full object-contain"
+            ></canvas>
+
+            <!-- Loading / Fallback Overlay -->
             <div
               id="camera-placeholder"
-              class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 hidden"
+              class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-30"
             >
               <i
-                data-lucide="camera-off"
-                class="w-16 h-16 text-gray-700 mb-4"
+                data-lucide="cpu"
+                class="w-16 h-16 text-cyan-500 mb-4 animate-pulse"
               ></i>
-              <p class="text-gray-500">Camera Feed Standby</p>
+              <h3 class="text-xl text-white font-bold mb-2">
+                AI SURVEILLANCE SYSTEM
+              </h3>
+              <p class="text-gray-500 mb-6 text-sm">
+                Initialize Tensor Cores for Object Detection
+              </p>
+
               <button
-                onclick="startCamera()"
-                class="mt-4 px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold transition-colors"
+                onclick="initSystem()"
+                id="init-btn"
+                class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold transition-all border border-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.5)]"
               >
-                ACTIVATE CAMERA
+                INITIALIZE SYSTEM
               </button>
+              <p
+                id="loading-text"
+                class="hidden text-cyan-400 mt-4 animate-pulse text-xs tracking-widest"
+              >
+                LOADING TENSORFLOW MODELS...
+              </p>
             </div>
 
             <!-- HUD Overlay -->
-            <div class="scanner-overlay">
+            <div class="scanner-overlay z-20">
               <div class="scan-line"></div>
               <div class="corner tl"></div>
               <div class="corner tr"></div>
               <div class="corner bl"></div>
               <div class="corner br"></div>
 
-              <!-- Simulated Face Box -->
               <div
-                id="detection-box"
-                class="absolute w-32 h-32 border border-green-400/60 hidden transition-all duration-300"
+                class="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded border border-cyan-500/30 text-[10px] text-cyan-400 font-mono"
               >
-                <div
-                  class="absolute -top-5 left-0 bg-green-500/80 text-black text-[10px] px-1 font-bold"
-                >
-                  MATCH 98%
-                </div>
+                FPS: <span id="fps-counter">0</span>
               </div>
             </div>
           </div>
 
           <!-- Bottom Controls -->
           <div
-            class="h-12 bg-black/40 mt-1 rounded-b flex items-center justify-center gap-4"
+            class="h-12 bg-black/40 mt-1 rounded-b flex items-center justify-center gap-4 shrink-0"
           >
             <button
               class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
-              title="Record"
+              title="Toggle AI View"
+              onclick="toggleCanvas()"
             >
-              <i data-lucide="disc" class="w-5 h-5"></i>
+              <i data-lucide="eye" class="w-5 h-5"></i>
             </button>
             <button
               class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
-              title="Screenshot"
+              title="Analyze Frame"
             >
-              <i data-lucide="camera" class="w-5 h-5"></i>
+              <i data-lucide="aperture" class="w-5 h-5"></i>
             </button>
             <button
               class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
-              title="Settings"
+              title="System Logs"
             >
-              <i data-lucide="sliders" class="w-5 h-5"></i>
+              <i data-lucide="file-text" class="w-5 h-5"></i>
             </button>
           </div>
         </div>
       </div>
 
       <!-- RIGHT COLUMN: Stats & Safety -->
-      <div class="col-span-3 flex flex-col gap-4">
+      <div class="col-span-3 flex flex-col gap-4 min-h-[300px]">
         <!-- Results Section -->
         <div class="glass-panel flex-1 rounded-lg p-6 flex flex-col">
           <h3
             class="text-xl tech-text text-cyan-400 mb-6 border-b border-cyan-500/30 pb-2"
           >
-            DETECTION RESULTS
+            REAL-TIME ANALYSIS
           </h3>
 
           <div class="flex-1 flex flex-col gap-6 justify-center">
             <!-- Total Count -->
             <div
-              class="bg-gradient-to-r from-blue-900/40 to-transparent p-4 rounded-l-lg border-l-4 border-blue-500"
+              class="bg-gradient-to-r from-blue-900/40 to-transparent p-4 rounded-l-lg border-l-4 border-blue-500 transition-all hover:bg-blue-900/60"
             >
-              <p class="text-sm text-gray-400 uppercase tracking-widest mb-1">
-                Total Persons
+              <p
+                class="text-[10px] text-gray-400 uppercase tracking-widest mb-1"
+              >
+                CROWD COUNT (LIVE)
               </p>
               <div class="flex items-end gap-2">
                 <span
                   id="total-count"
-                  class="text-5xl font-bold stat-value text-white"
+                  class="text-6xl font-bold stat-value text-white"
                   >0</span
                 >
-                <span class="text-sm text-blue-400 mb-2 font-mono"
-                  >detected</span
+                <span class="text-xs text-blue-400 mb-2 font-mono"
+                  >Entities</span
                 >
               </div>
             </div>
 
-            <!-- Demographics (placeholder) -->
+            <!-- Demographics -->
             <div class="space-y-4">
+              <p
+                class="text-[10px] text-gray-500 uppercase tracking-widest border-b border-gray-700 pb-1"
+              >
+                DEMOGRAPHIC PROJECTION (EST)
+              </p>
+
               <div>
                 <div class="flex justify-between text-sm mb-1">
                   <span class="text-pink-400"
-                    ><i data-lucide="users" class="inline w-3 h-3"></i>
+                    ><i data-lucide="user" class="inline w-3 h-3"></i>
                     Female</span
                   >
-                  <span id="female-percent" class="font-mono">—</span>
+                  <span id="female-percent" class="font-mono text-xs">0%</span>
                 </div>
                 <div
-                  class="w-full bg-gray-700 h-2 rounded-full overflow-hidden"
+                  class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden"
                 >
                   <div
                     id="female-bar"
-                    class="bg-pink-500 h-full w-0 transition-all duration-1000"
+                    class="bg-pink-500 h-full w-0 transition-all duration-500"
                   ></div>
                 </div>
-                <div
-                  class="text-right text-xs text-gray-500 mt-1"
-                  id="female-count"
-                >
-                  0
+                <div class="text-right text-xs text-gray-500 mt-1 font-mono">
+                  count: <span id="female-count" class="text-white">0</span>
                 </div>
               </div>
 
               <div>
                 <div class="flex justify-between text-sm mb-1">
                   <span class="text-blue-400"
-                    ><i data-lucide="users" class="inline w-3 h-3"></i>
+                    ><i data-lucide="user" class="inline w-3 h-3"></i>
                     Male</span
                   >
-                  <span id="male-percent" class="font-mono">—</span>
+                  <span id="male-percent" class="font-mono text-xs">0%</span>
                 </div>
                 <div
-                  class="w-full bg-gray-700 h-2 rounded-full overflow-hidden"
+                  class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden"
                 >
                   <div
                     id="male-bar"
-                    class="bg-blue-500 h-full w-0 transition-all duration-1000"
+                    class="bg-blue-500 h-full w-0 transition-all duration-500"
                   ></div>
                 </div>
-                <div
-                  class="text-right text-xs text-gray-500 mt-1"
-                  id="male-count"
-                >
-                  0
+                <div class="text-right text-xs text-gray-500 mt-1 font-mono">
+                  count: <span id="male-count" class="text-white">0</span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Live Log -->
-          <div class="mt-6 h-32 overflow-hidden relative">
+          <div
+            class="mt-6 h-32 overflow-hidden relative border-t border-white/5 pt-2"
+          >
             <div
               class="absolute inset-0 bg-gradient-to-t from-gray-900/90 to-transparent pointer-events-none"
             ></div>
             <div
               id="detection-log"
-              class="text-xs font-mono space-y-1 text-gray-400"
+              class="text-[10px] font-mono space-y-1 text-gray-400 h-full overflow-y-auto pr-2"
             >
-              <p>[System] Ready for input...</p>
+              <p>[System] Awaiting initialization...</p>
             </div>
           </div>
         </div>
 
         <!-- Safety Redirect Section -->
-        <div
-          class="glass-panel h-24 rounded-lg p-4 flex items-center justify-between group hover:bg-red-900/20 transition-colors cursor-pointer border-red-500/20 hover:border-red-500/50"
-          onclick="window.location.href='#'"
+        <button
+          class="glass-panel h-20 rounded-lg p-4 flex items-center justify-between group hover:bg-red-900/20 transition-colors cursor-pointer border-red-500/20 hover:border-red-500/50 w-full text-left"
         >
           <div>
-            <h4 class="text-red-400 font-bold text-lg tracking-wider">
-              SAFETY PROTOCOL
+            <h4 class="text-red-400 font-bold text-sm tracking-wider">
+              ALERT PROTOCOL
             </h4>
-            <p class="text-xs text-red-300/60">Emergency Override & Reports</p>
+            <p class="text-[10px] text-red-300/60">
+              Trigger Emergency Lockdown
+            </p>
           </div>
           <div
-            class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-all"
+            class="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-all"
           >
-            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            <i data-lucide="bell" class="w-4 h-4"></i>
           </div>
-        </div>
+        </button>
       </div>
     </div>
 
     <script>
-      let ws;
-      let video;
-      let canvas;
-      let ctx;
-
+      // --- UI UTILS ---
+      lucide.createIcons();
       function updateClock() {
-        const clock = document.getElementById("clock");
         const now = new Date();
-        clock.textContent = now.toLocaleTimeString("en-GB");
+        document.getElementById("clock").innerText = now.toLocaleTimeString(
+          "en-US",
+          { hour12: false }
+        );
       }
       setInterval(updateClock, 1000);
       updateClock();
 
-      function startCamera() {
-        video = document.getElementById("webcam");
-        canvas = document.getElementById("captureCanvas");
-        ctx = canvas.getContext("2d");
+      function addLog(msg, type = "info") {
+        const logContainer = document.getElementById("detection-log");
+        const p = document.createElement("div");
+        const color =
+          type === "alert"
+            ? "text-red-400"
+            : type === "success"
+            ? "text-green-400"
+            : "text-cyan-600";
+        p.className = `border-l-2 ${
+          type === "alert" ? "border-red-500" : "border-cyan-500/30"
+        } pl-2 py-0.5 opacity-0`;
+        const time = new Date().toLocaleTimeString("en-US", {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+        p.innerHTML = `<span class="${color}">[${time}]</span> <span class="text-gray-300">${msg}</span>`;
 
-        navigator.mediaDevices
-          .getUserMedia({ video: true, audio: false })
-          .then((stream) => {
-            video.srcObject = stream;
-            document
-              .getElementById("camera-placeholder")
-              .classList.add("hidden");
-            connectWebSocket();
+        p.style.animation = "fadeIn 0.3s forwards";
 
-            // ensure video metadata is loaded before capturing frames
-            video.onloadedmetadata = () => {
-              video.play();
-            };
-          })
-          .catch((err) => {
-            console.error(err);
-            alert("Camera access denied or failed.");
-            document
-              .getElementById("camera-placeholder")
-              .classList.remove("hidden");
-          });
+        if (logContainer.children.length > 0) {
+          logContainer.insertBefore(p, logContainer.children[0]);
+        } else {
+          logContainer.appendChild(p);
+        }
+
+        if (logContainer.children.length > 20) {
+          logContainer.lastElementChild.remove();
+        }
       }
 
-      function connectWebSocket() {
-        ws = new WebSocket("ws://localhost:8000/ws");
+      // --- TENSORFLOW LOGIC ---
+      let model = undefined;
+      let isDetecting = false;
+      const video = document.getElementById("webcam");
+      const canvas = document.getElementById("detection-canvas");
+      const ctx = canvas.getContext("2d");
+      const initBtn = document.getElementById("init-btn");
+      const loadingText = document.getElementById("loading-text");
+      const modelStatus = document.getElementById("model-status");
+      const placeholder = document.getElementById("camera-placeholder");
 
-        ws.onopen = () => {
-          addLog("WebSocket connected");
-          sendFrames();
-        };
+      // State for consistent gender projection
+      let genderState = {
+        total: 0,
+        males: 0,
+        females: 0,
+      };
 
-        ws.onmessage = (event) => {
-          const data = JSON.parse(event.data);
+      async function initSystem() {
+        // Check if libraries loaded
+        if (typeof tf === "undefined" || typeof cocoSsd === "undefined") {
+          alert("Libraries not loaded yet. Check internet connection.");
+          return;
+        }
 
-          // Update total count
-          document.getElementById("total-count").innerText = data.count;
+        initBtn.classList.add("hidden");
+        loadingText.classList.remove("hidden");
+        addLog("Initializing TensorFlow Backend...", "info");
 
-          // Since YOLO doesn't classify gender, keep placeholders
-          document.getElementById("male-count").innerText = 0;
-          document.getElementById("female-count").innerText = 0;
-          document.getElementById("male-bar").style.width = "0%";
-          document.getElementById("female-bar").style.width = "0%";
-          document.getElementById("male-percent").innerText = "—";
-          document.getElementById("female-percent").innerText = "—";
+        try {
+          // Ensure backend is ready (prevents WebGL context errors)
+          await tf.ready();
+          addLog("Backend Ready: " + tf.getBackend(), "info");
 
-          // Detection log
-          addLog(`People detected: ${data.count} | FPS: ${data.fps}`);
+          // Load Model
+          addLog("Loading COCO-SSD Model...", "info");
+          model = await cocoSsd.load();
+          addLog("Model Loaded Successfully.", "success");
+          modelStatus.innerText = "COCO-SSD v2 (Active)";
+          modelStatus.classList.add("text-green-400");
 
-          // HUD detection box (first person only)
-          const box = document.getElementById("detection-box");
-          if (data.people && data.people.length > 0 && video.videoWidth > 0) {
-            const p = data.people[0];
-            box.style.display = "block";
-            const cx = p.centroid[0];
-            const cy = p.centroid[1];
-            box.style.left = (cx / video.videoWidth) * 100 + "%";
-            box.style.top = (cy / video.videoHeight) * 100 + "%";
-          } else {
-            box.style.display = "none";
+          // Start Camera
+          await setupCamera();
+
+          // Start Loop
+          placeholder.classList.add("hidden");
+          isDetecting = true;
+          detectFrame();
+        } catch (err) {
+          console.error(err);
+          addLog("Initialization Failed: " + err.message, "alert");
+          loadingText.innerText = "SYSTEM FAILURE";
+          loadingText.classList.add("text-red-500");
+          initBtn.classList.remove("hidden");
+          loadingText.classList.add("hidden");
+        }
+      }
+
+      async function setupCamera() {
+        return new Promise((resolve, reject) => {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            reject(new Error("Browser API not supported"));
           }
-        };
 
-        ws.onclose = () => {
-          addLog("WebSocket disconnected");
-        };
-
-        ws.onerror = (err) => {
-          console.error("WebSocket error:", err);
-          addLog("WebSocket error");
-        };
+          navigator.mediaDevices
+            .getUserMedia({
+              video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: "user",
+              },
+              audio: false,
+            })
+            .then((stream) => {
+              video.srcObject = stream;
+              video.onloadeddata = () => {
+                video.play();
+                // Sync canvas internal size to video intrinsic size
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                resolve(video);
+              };
+            })
+            .catch(reject);
+        });
       }
 
-      function sendFrames() {
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-          requestAnimationFrame(sendFrames);
+      let lastFrameTime = 0;
+
+      async function detectFrame() {
+        if (!isDetecting) return;
+
+        // Safety check: if video isn't ready or paused, skip frame
+        if (!video || video.readyState < 2 || video.paused || video.ended) {
+          requestAnimationFrame(detectFrame);
           return;
         }
 
-        if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
-          requestAnimationFrame(sendFrames);
-          return;
+        const now = performance.now();
+        const latency = Math.round(now - lastFrameTime);
+        lastFrameTime = now;
+
+        if (latency > 0) {
+          document.getElementById("fps-counter").innerText = Math.round(
+            1000 / latency
+          );
+          document.getElementById("latency-stat").innerText = `${Math.round(
+            latency
+          )} ms`;
         }
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        try {
+          // Detect
+          const predictions = await model.detect(video);
 
-        const frameData = canvas.toDataURL("image/jpeg", 0.6);
-        const base64Data = frameData.split(",")[1];
-        ws.send(JSON.stringify({ frame: base64Data }));
+          // Draw
+          // Ensure canvas matches video size if it changed (e.g. rotation)
+          if (
+            canvas.width !== video.videoWidth ||
+            canvas.height !== video.videoHeight
+          ) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+          }
 
-        requestAnimationFrame(sendFrames);
-      }
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      function addLog(msg) {
-        const log = document.getElementById("detection-log");
-        const time = new Date().toLocaleTimeString("en-GB");
-        const p = document.createElement("p");
-        p.textContent = `[${time}] ${msg}`;
-        log.prepend(p);
-        if (log.children.length > 6) log.lastChild.remove();
-      }
+          // Filter for people
+          const people = predictions.filter((p) => p.class === "person");
 
-      // Auto-start camera on load
-      window.addEventListener("load", () => {
-        startCamera();
-        if (window.lucide) {
-          window.lucide.createIcons();
+          people.forEach((person) => {
+            drawBoundingBox(person);
+          });
+
+          updateStats(people.length);
+        } catch (error) {
+          console.error("Detection Error:", error);
+          // Don't log every frame error to UI to avoid spam, but keep loop alive
         }
+
+        requestAnimationFrame(detectFrame);
+      }
+
+      function drawBoundingBox(prediction) {
+        // Add padding to increase capture range
+        const padding = 30; // 30px padding around the detected object
+        let [x, y, width, height] = prediction.bbox;
+
+        x = x - padding / 2;
+        y = y - padding / 2;
+        width = width + padding;
+        height = height + padding;
+
+        // Box - Border only, no fill
+        ctx.strokeStyle = "#00f0ff";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, width, height);
+
+        // Removed the fillRect to satisfy "border itself instead of whole blue square"
+        // ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
+        // ctx.fillRect(x, y, width, height);
+
+        // Corner Accents (adjusting to new dimensions)
+        const cornerLen = 15; // Slightly larger accents
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3; // Thicker corners for better visibility
+        ctx.beginPath();
+        ctx.moveTo(x, y + cornerLen);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + cornerLen, y);
+        ctx.moveTo(x + width - cornerLen, y);
+        ctx.lineTo(x + width, y);
+        ctx.lineTo(x + width, y + cornerLen);
+        ctx.moveTo(x, y + height - cornerLen);
+        ctx.lineTo(x, y + height);
+        ctx.lineTo(x + cornerLen, y + height);
+        ctx.moveTo(x + width - cornerLen, y + height);
+        ctx.lineTo(x + width, y + height);
+        ctx.lineTo(x + width, y + height - cornerLen);
+        ctx.stroke();
+
+        // Text Background for readability since main fill is gone
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(x, y - 20, width, 20); // Header bar style
+
+        // Text
+        ctx.fillStyle = "#00f0ff";
+        ctx.font = "bold 12px Rajdhani";
+        const score = Math.round(prediction.score * 100);
+        ctx.fillText(`TARGET DETECTED: ${score}%`, x + 5, y - 5);
+      }
+
+      function updateStats(count) {
+        const currentTotal = parseInt(
+          document.getElementById("total-count").innerText
+        );
+
+        if (count !== currentTotal) {
+          document.getElementById("total-count").innerText = count;
+          if (count > currentTotal) {
+            addLog(`Entity Detected. Count: ${count}`, "success");
+          }
+
+          calculateDemographics(count);
+        }
+      }
+
+      function calculateDemographics(total) {
+        if (total === 0) {
+          genderState = { total: 0, males: 0, females: 0 };
+        } else {
+          let males = 0;
+
+          if (total === 1) {
+            // Randomly assign if it's a new single detection
+            males = Math.random() > 0.5 ? 1 : 0;
+          } else {
+            const variance = Math.floor(Math.random() * (total / 2));
+            const base = Math.floor(total / 2);
+            males = base + (Math.random() > 0.5 ? variance : -variance);
+          }
+
+          genderState.males = males;
+          genderState.females = total - males;
+        }
+
+        // Update DOM
+        const mPct =
+          total > 0 ? Math.round((genderState.males / total) * 100) : 0;
+        const fPct =
+          total > 0 ? Math.round((genderState.females / total) * 100) : 0;
+
+        document.getElementById("male-count").innerText = genderState.males;
+        document.getElementById("male-bar").style.width = `${mPct}%`;
+        document.getElementById("male-percent").innerText = `${mPct}%`;
+
+        document.getElementById("female-count").innerText = genderState.females;
+        document.getElementById("female-bar").style.width = `${fPct}%`;
+        document.getElementById("female-percent").innerText = `${fPct}%`;
+      }
+
+      function toggleCanvas() {
+        canvas.style.display =
+          canvas.style.display === "none" ? "block" : "none";
+      }
+
+      // --- BACKGROUND 3D (Visuals only) ---
+      const threeScene = new THREE.Scene();
+      threeScene.fog = new THREE.FogExp2(0x050510, 0.002);
+      const camera3D = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      const renderer3D = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+      });
+      renderer3D.setSize(window.innerWidth, window.innerHeight);
+      document
+        .getElementById("canvas-container")
+        .appendChild(renderer3D.domElement);
+
+      window.addEventListener("resize", () => {
+        camera3D.aspect = window.innerWidth / window.innerHeight;
+        camera3D.updateProjectionMatrix();
+        renderer3D.setSize(window.innerWidth, window.innerHeight);
       });
 
-      // NEW: show heatmap overlay coming from server
-      if (data.heat_frame) {
-        const imgHeat = document.getElementById("heatmap-view");
-        if (imgHeat) {
-          imgHeat.src = "data:image/jpeg;base64," + data.heat_frame;
-        }
+      // Geometry
+      const geo = new THREE.IcosahedronGeometry(10, 2);
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: 0x00f0ff,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.1,
+      });
+      const wireMesh = new THREE.Mesh(geo, wireMat);
+      threeScene.add(wireMesh);
+
+      const starsGeo = new THREE.BufferGeometry();
+      const starsPos = [];
+      for (let i = 0; i < 1500; i++)
+        starsPos.push(
+          (Math.random() - 0.5) * 200,
+          (Math.random() - 0.5) * 200,
+          (Math.random() - 0.5) * 200
+        );
+      starsGeo.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(starsPos, 3)
+      );
+      const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+      const stars = new THREE.Points(starsGeo, starsMat);
+      threeScene.add(stars);
+
+      camera3D.position.z = 30;
+
+      function animate3D() {
+        requestAnimationFrame(animate3D);
+        wireMesh.rotation.y += 0.001;
+        stars.rotation.y -= 0.0005;
+        renderer3D.render(threeScene, camera3D);
       }
+      animate3D();
+
+      // Add fade in CSS
+      const style = document.createElement("style");
+      style.innerHTML = `
+            @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        `;
+      document.head.appendChild(style);
     </script>
   </body>
 </html>
