@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S-RAY | Crowd Safety Intelligence</title>
+    
+    <!-- Fonts: DM Sans for a modern, human, yet engineered feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Three.js & GSAP + ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        /* --- CORE VISUALS & RESET --- */
+        :root {
+            /* Palette: Deep Ocean & Bioluminescence (Calm, Safe, Intelligent) */
+            --bg-deep: #020408;       /* Almost Black Blue */
+            --bg-surface: #0a111a;    /* Deep Navy */
+            
+            --grad-primary: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); /* Luminous Blue */
+            --grad-glow: radial-gradient(circle at center, rgba(0, 198, 255, 0.15) 0%, rgba(5, 10, 20, 0) 70%);
+
+            --accent-safe: #00d2ff;   /* Cyan */
+            --accent-warm: #ff9a9e;   /* Soft Peach/Pink for humanity */
+            --accent-alert: #ffb74d;  /* Amber for alerts */
+
+            --text-white: #ffffff;
+            --text-dim: #8b9bb4;      /* Cool Grey */
+            
+            --glass-bg: rgba(10, 17, 26, 0.7); /* Slightly more opaque for nav */
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.15);
+            
+            --font-main: 'DM Sans', sans-serif;
+            --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+            --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+            --nav-height: 80px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-white);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- TYPOGRAPHY --- */
+        h1, h2, h3, h4 { font-weight: 500; line-height: 1.1; letter-spacing: -0.02em; }
+        
+        .display-text {
+            font-size: clamp(3rem, 8vw, 6rem);
+            background: linear-gradient(180deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 40px rgba(0, 198, 255, 0.2);
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(90deg, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        /* Word wrapper for staggered animation */
+        .word-wrapper {
+            display: inline-block;
+            transform-origin: bottom center;
+        }
+
+        p {
+            font-size: 1.125rem;
+            line-height: 1.6;
+            color: var(--text-dim);
+            font-weight: 300;
+        }
+
+        /* --- LAYOUT & UTILS --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Default spacer */
+        .section-spacer { padding: 8rem 0; }
+        
+        /* OVERVIEW OVERRIDE: Pull up to merge with Hero */
+        #overview { 
+            padding-top: 0; 
+            margin-top: -15vh; /* Pulls content up into the Hero's bottom fade */
+            position: relative;
+            z-index: 10; /* Ensures text sits on top of the background fade */
+        }
+
+        /* --- NAVIGATION --- */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--nav-height);
+            z-index: 1000;
+            background: rgba(2, 4, 8, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--glass-border);
+            transition: transform 0.3s ease;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-white);
+            text-decoration: none;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-dot {
+            width: 10px; height: 10px;
+            background: var(--accent-safe);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-safe);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-link:hover { color: var(--text-white); }
+
+        .nav-cta {
+            padding: 10px 24px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50px;
+            color: white;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .nav-cta:hover {
+            background: var(--text-white);
+            color: var(--bg-deep);
+        }
+        
+        /* Mobile Nav Toggle */
+        .mobile-menu-btn { display: none; color: white; font-size: 1.5rem; }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .mobile-menu-btn { display: block; }
+        }
+
+        /* Cinematic Glass Cards */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid var(--glass-highlight);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3);
+            transition: transform 0.6s var(--ease-out), box-shadow 0.6s var(--ease-out);
+            height: 100%;
+        }
+        .glass-panel:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 30px 60px -15px rgba(0, 198, 255, 0.15);
+        }
+
+        /* 3D Feature Cards */
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-5px) rotateX(2deg) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Elegant Button */
+        .btn-cinematic {
+            position: relative;
+            padding: 18px 36px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-weight: 500;
+            font-size: 1.1rem;
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .btn-cinematic:hover { 
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            perspective: 1000px;
+            margin-top: -80px; /* Offset nav */
+            padding-top: 80px;
+        }
+
+        /* Gradient Fade to Merge with Next Section */
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 300px; /* Increased Height for smoother merge */
+            background: linear-gradient(to bottom, rgba(2, 4, 8, 0) 0%, var(--bg-deep) 90%);
+            z-index: 5; /* Above canvas, below text content */
+            pointer-events: none;
+        }
+
+        /* 3D WebGL Container */
+        #webgl-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            background: var(--bg-deep); /* Fallback */
+        }
+
+        /* Vignette for cinematic focus - Reduced opacity for visibility */
+        .vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            /* Much lighter gradient so corners aren't too dark */
+            background: radial-gradient(circle at center, rgba(5, 10, 20, 0.1) 40%, rgba(2, 4, 8, 0.6) 100%);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 10;
+            opacity: 0; /* Hidden initially, GSAP will handle reveal */
+            max-width: 800px;
+            pointer-events: none; /* Let clicks pass to 3D if needed */
+        }
+        .hero-content > * { pointer-events: auto; }
+
+        /* Floating Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+            backdrop-filter: blur(4px);
+        }
+
+        /* --- CONTENT GRIDS --- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 2rem;
+        }
+        
+        /* New Single Column Layout for Overview */
+        .single-column-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem; /* Reduced gap to bring card closer */
+            max-width: 1000px; /* Wider to fit 3 cards nicely */
+            margin: 0 auto; /* Center alignment */
+        }
+
+        .col-span-8 { grid-column: span 8; }
+        .col-span-4 { grid-column: span 4; }
+        .col-span-6 { grid-column: span 6; }
+        .col-span-5 { grid-column: span 5; }
+        .col-span-1 { grid-column: span 1; }
+        .col-span-3 { grid-column: span 3; }
+        .col-span-12 { grid-column: span 12; }
+
+        @media (max-width: 1024px) {
+            .col-span-8, .col-span-4, .col-span-6, .col-span-5, .col-span-3 { grid-column: span 12; }
+            .col-span-1 { display: none; } /* Hide spacer on mobile */
+            .display-text { font-size: 3.5rem; }
+        }
+
+        /* --- VISUAL ELEMENTS --- */
+        /* Abstract Crowd Flow Visualizer */
+        .vis-wrapper {
+            height: 350px; /* Slightly shorter for grid */
+            background: rgba(0,0,0,0.2);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.8s ease;
+        }
+
+        /* Soft Pulse Effect (Not a radar) */
+        .soft-pulse {
+            position: absolute;
+            width: 250px; height: 250px;
+            border-radius: 50%;
+            animation: breathe 4s ease-in-out infinite;
+            transition: background 0.8s ease;
+        }
+
+        /* Feature Icon Box */
+        .icon-box {
+            width: 50px; height: 50px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 1.5rem;
+            color: var(--accent-safe);
+        }
+
+        /* Data cards */
+        .stat-number { font-size: 3.5rem; font-weight: 300; color: white; line-height: 1; }
+        .stat-label { font-size: 1rem; color: var(--text-dim); margin-top: 0.5rem; }
+
+        /* --- ANIMATIONS (GSAP Controlled) --- */
+        /* Removed CSS .reveal classes to prevent conflicts with GSAP */
+        .reveal, .pop-single {
+            opacity: 0; /* Default hidden, GSAP will show it */
+            visibility: hidden;
+        }
+        
+        .animated-line {
+            display: block;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.5); opacity: 0.8; } }
+
+    </style>
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="#" class="logo">
+                <div class="logo-dot"></div>
+                S-RAY
+            </a>
+            
+            <div class="nav-links">
+                <a href="#overview" class="nav-link">Features</a>
+                <a href="#live-data" class="nav-link">Live Data</a>
+                <a href="#safety" class="nav-link">Safety</a>
+                <a href="#footer" class="nav-link">Contact</a>
+            </div>
+
+            <a href="#live-data" class="nav-cta">Launch Dashboard</a>
+            <div class="mobile-menu-btn">☰</div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <!-- 3D Background Container -->
+        <div id="webgl-container"></div>
+        <div class="vignette"></div>
+        
+        <div class="hero-content">
+            <div class="badge">Privacy-First Crowd Monitoring</div>
+            <h1 class="display-text">Safety in Motion.</h1>
+            <p style="margin-bottom: 3rem;">
+                A real-time crowd intelligence platform powered by <strong>Computer Vision</strong> and <strong>Geo-Fencing</strong>. <br>
+                Identify overcrowding risks instantly without facial recognition.
+            </p>
+            <button class="btn-cinematic" onclick="document.getElementById('overview').scrollIntoView({behavior: 'smooth'})">
+                Explore The Solution
+            </button>
+        </div>
+    </section>
+
+    <!-- OVERVIEW / FEATURES SECTION -->
+    <section id="overview" class="section-spacer">
+        <div class="container">
+            <!-- Changed from .grid to .single-column-stack for vertical ordering -->
+            <div class="single-column-stack">
+                
+                <!-- 1. Text Intro -->
+                <div class="pop-group" style="width: 100%;">
+                    <!-- Split text for animation targets -->
+                    <h2 class="section-title">
+                        <span class="word-wrapper">Intelligent</span> <span class="word-wrapper">monitoring</span><br>
+                        <span class="word-wrapper">for</span> <span class="word-wrapper">complex</span> <span class="word-wrapper">spaces.</span>
+                    </h2>
+                    <p class="desc-text" style="margin-bottom: 1rem; font-size: 1.25rem; color: #b0c4de; line-height: 1.7; max-width: 800px;">
+                        <span class="animated-line">Large public spaces face delayed response times and lack situational awareness.</span>
+                        <span class="animated-line" style="color: var(--accent-safe); font-weight: 500;">S-RAY solves this by converting live video feeds into anonymous data points.</span>
+                    </p>
+                </div>
+
+                <!-- 2. Status Animation Card (Single Card, Cycling) -->
+                <div class="pop-single" style="width: 100%;">
+                    <div class="glass-panel" style="padding: 3rem; min-height: 350px; position: relative; overflow: hidden;">
+                        <!-- Dynamic Background for Status -->
+                        <div class="vis-wrapper" id="vis-bg" style="height: 100%; width: 100%; position: absolute; top:0; left:0; border: none; background: radial-gradient(circle, rgba(2,4,8,0.5) 0%, rgba(0,0,0,0) 80%);">
+                            <!-- Animated Pulse -->
+                            <div class="soft-pulse" id="status-pulse" style="width: 400px; height: 400px;"></div>
+                            
+                            <!-- Dynamic Status Text -->
+                            <div style="position: absolute; text-align: center; z-index: 2; width: 100%; top: 50%; transform: translateY(-50%);">
+                                <div id="status-text" style="font-size: 5rem; font-weight: 700; transition: color 0.5s ease; line-height: 1;">Safe</div>
+                                <div id="status-sub" style="color: var(--text-dim); letter-spacing: 0.2em; text-transform: uppercase; font-size: 1rem; margin-top: 15px;">Status: Open</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- DASHBOARD PREVIEW SECTION -->
+    <section id="live-data" class="section-spacer" style="background: linear-gradient(to bottom, var(--bg-deep), var(--bg-surface));">
+        <div class="container">
+            <div class="reveal" style="text-align: center; margin-bottom: 4rem;">
+                <h2 style="font-size: 2.5rem;">Live Context</h2>
+                <p>Real-time data stream from North Avenue Plaza</p>
+            </div>
+
+            <div class="grid">
+                <!-- Large Metric: Occupancy -->
+                <div class="col-span-4 glass-panel reveal" style="padding: 2.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div class="stat-label">Active Presence</div>
+                        <div class="stat-number">2,840</div>
+                    </div>
+                    <div style="height: 6px; width: 100%; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 2rem; overflow: hidden;">
+                        <div style="height: 100%; width: 45%; background: var(--grad-primary); border-radius: 10px;"></div>
+                    </div>
+                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-dim);">45% of comfortable capacity</div>
+                </div>
+
+                <!-- Insight Card: Prediction -->
+                <div class="col-span-4 glass-panel reveal" style="padding: 2.5rem;">
+                    <div class="stat-label">Flow Prediction</div>
+                    <h3 style="font-size: 1.5rem; margin: 1rem 0;">Expect peak flow at North Gate in 15 mins.</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-dim);">
+                        Based on historical transit arrival patterns. Recommendation: Open Gate B.
+                    </p>
+                </div>
+
+                <!-- Status Card: Zones -->
+                <div class="col-span-4 glass-panel reveal" style="padding: 2.5rem;">
+                     <div class="stat-label">Zone Status</div>
+                     <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <span>Plaza Core</span>
+                            <span style="color: var(--accent-safe);">Fluid</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <span>West Entry</span>
+                            <span style="color: var(--accent-safe);">Fluid</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>East Corridor</span>
+                            <span style="color: var(--accent-alert);">Busy</span>
+                        </div>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SAFETY & ETHICS -->
+    <section id="safety" class="section-spacer">
+        <div class="container">
+            <div class="grid" style="align-items: center;">
+                <div class="col-span-5 reveal">
+                    <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Trust is our infrastructure.</h2>
+                    <p>
+                        Surveillance destroys trust. Awareness builds it. We engineered S-RAY to be technically incapable of identifying individuals (No Facial Recognition).
+                    </p>
+                    <ul style="margin-top: 2rem; list-style: none;">
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                            <span style="color: var(--accent-safe);">✓</span> No biometric data collection
+                        </li>
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                            <span style="color: var(--accent-safe);">✓</span> Data is aggregated and anonymized
+                        </li>
+                        <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                            <span style="color: var(--accent-safe);">✓</span> Physical Validation via Sensors
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-span-1"></div>
+                <div class="col-span-6 reveal">
+                    <div class="glass-panel" style="padding: 3rem; text-align: center;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">🛡️</div>
+                        <h3>Certified Privacy First</h3>
+                        <p style="font-size: 0.9rem; margin-top: 1rem;">
+                            Our algorithms process motion vectors, not pixels. We see the flow, not the face.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer id="footer" style="padding: 5rem 0; text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
+        <div class="container">
+            <h2 style="font-size: 1.5rem; margin-bottom: 2rem;">S-RAY</h2>
+            <p style="font-size: 0.9rem; margin-bottom: 2rem;">Designed for the public good.</p>
+            <div style="display: flex; justify-content: center; gap: 2rem;">
+                <a href="#" style="color: var(--text-dim); text-decoration: none; font-size: 0.9rem;">Technology</a>
+                <a href="#" style="color: var(--text-dim); text-decoration: none; font-size: 0.9rem;">Ethics</a>
+                <a href="#" style="color: var(--text-dim); text-decoration: none; font-size: 0.9rem;">Contact</a>
+            </div>
+            <div style="margin-top: 3rem; color: var(--text-dim); font-size: 0.8rem; opacity: 0.5;">
+                &copy; 2026 S-RAY Intelligence Systems.
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        /* --- STATUS CYCLE ANIMATION --- */
+        const initStatusCycle = () => {
+            const statusText = document.getElementById('status-text');
+            const statusSub = document.getElementById('status-sub');
+            const statusPulse = document.getElementById('status-pulse');
+            const visBg = document.getElementById('vis-bg');
+            
+            if (!statusText || !statusPulse) return;
+
+            // Updated Colors based on request:
+            // Safe -> Green (Can Go)
+            // Moderate -> Orange (Wait)
+            // Critical -> Red (Can't Go)
+            const statuses = [
+                { 
+                    title: "Safe", 
+                    sub: "Status: Open", 
+                    color: "#00e676", 
+                    pulse: "rgba(0, 230, 118, 0.4)",
+                    bg: "radial-gradient(circle, rgba(0, 230, 118, 0.15) 0%, rgba(0,0,0,0) 80%)"
+                },
+                { 
+                    title: "Moderate", 
+                    sub: "Status: Wait", 
+                    color: "#ff9100", 
+                    pulse: "rgba(255, 145, 0, 0.4)",
+                    bg: "radial-gradient(circle, rgba(255, 145, 0, 0.15) 0%, rgba(0,0,0,0) 80%)"
+                },
+                { 
+                    title: "Critical", 
+                    sub: "Status: Closed", 
+                    color: "#ff1744", 
+                    pulse: "rgba(255, 23, 68, 0.4)",
+                    bg: "radial-gradient(circle, rgba(255, 23, 68, 0.15) 0%, rgba(0,0,0,0) 80%)"
+                }
+            ];
+            
+            let index = 0;
+
+            // Initialize first state
+            statusText.style.color = statuses[0].color;
+            statusText.innerText = statuses[0].title;
+            statusSub.innerText = statuses[0].sub;
+            statusPulse.style.background = `radial-gradient(circle, ${statuses[0].pulse} 0%, transparent 70%)`;
+            visBg.style.background = statuses[0].bg;
+
+            setInterval(() => {
+                index = (index + 1) % statuses.length;
+                const nextState = statuses[index];
+
+                // Animate Out Text
+                gsap.to([statusText, statusSub], {
+                    opacity: 0,
+                    y: 20,
+                    duration: 0.3,
+                    onComplete: () => {
+                        // Change Content
+                        statusText.innerText = nextState.title;
+                        statusSub.innerText = nextState.sub;
+                        statusText.style.color = nextState.color;
+                        
+                        // Update Backgrounds
+                        statusPulse.style.background = `radial-gradient(circle, ${nextState.pulse} 0%, transparent 70%)`;
+                        visBg.style.background = nextState.bg;
+                        
+                        // Animate In Text
+                        gsap.to([statusText, statusSub], {
+                            opacity: 1,
+                            y: 0,
+                            duration: 0.5,
+                            ease: "back.out(1.7)",
+                            stagger: 0.1
+                        });
+                    }
+                });
+            }, 3000); // 3 Seconds per state
+        };
+
+        /* --- THREE.JS + GSAP CROWD SIMULATION --- */
+        const initThreeScene = () => {
+            const container = document.getElementById('webgl-container');
+            
+            // Scene
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x020408); 
+            // FOG REMOVED per request to see far end clearly
+            // scene.fog = new THREE.FogExp2(0x020408, 0.015); 
+
+            // Camera
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 10, 28); 
+            camera.lookAt(0, 0, 0);
+
+            // Renderer
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // --- LIGHTING (Increased Intensity) ---
+            
+            // 1. Ambient Light - Bright global illumination
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85); // Increased from 0.3
+            scene.add(ambientLight);
+
+            // 2. Camera Spotlight - "Flashlight" effect
+            const camSpot = new THREE.SpotLight(0xffffff, 2.0, 120, Math.PI / 3, 0.5, 1);
+            camSpot.position.set(0, 0, 0); 
+            camSpot.target.position.set(0, 0, -20); 
+            
+            camera.add(camSpot);
+            camera.add(camSpot.target);
+            scene.add(camera);
+
+
+            // --- CUSTOM "LOW POLY PERSON" GEOMETRY ---
+            const createPersonGeometry = () => {
+                const parts = [];
+                
+                // 1. Head (Sphere)
+                const head = new THREE.SphereGeometry(0.25, 8, 8);
+                head.translate(0, 1.7, 0); 
+                parts.push(head);
+
+                // 2. Torso (Box)
+                const torso = new THREE.BoxGeometry(0.4, 0.7, 0.25);
+                torso.translate(0, 1.1, 0);
+                parts.push(torso);
+
+                // 3. Arms (Cylinders)
+                const armL = new THREE.CylinderGeometry(0.08, 0.07, 0.7, 6);
+                armL.translate(-0.35, 1.1, 0);
+                armL.rotateZ(0.1); 
+                parts.push(armL);
+
+                const armR = new THREE.CylinderGeometry(0.08, 0.07, 0.7, 6);
+                armR.translate(0.35, 1.1, 0);
+                armR.rotateZ(-0.1);
+                parts.push(armR);
+
+                // 4. Legs (Cylinders)
+                const legL = new THREE.CylinderGeometry(0.09, 0.08, 0.85, 6);
+                legL.translate(-0.15, 0.42, 0);
+                parts.push(legL);
+
+                const legR = new THREE.CylinderGeometry(0.09, 0.08, 0.85, 6);
+                legR.translate(0.15, 0.42, 0);
+                parts.push(legR);
+
+                // Manual Merge logic for Vanilla JS
+                let posCount = 0;
+                parts.forEach(p => posCount += p.attributes.position.count);
+                
+                const combinedGeo = new THREE.BufferGeometry();
+                const posArray = new Float32Array(posCount * 3);
+                const normArray = new Float32Array(posCount * 3);
+                
+                let offset = 0;
+                parts.forEach(geo => {
+                    const p = geo.attributes.position.array;
+                    const n = geo.attributes.normal.array; 
+                    
+                    posArray.set(p, offset * 3);
+                    if(n) normArray.set(n, offset * 3);
+                    
+                    offset += geo.attributes.position.count;
+                });
+                
+                combinedGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+                combinedGeo.setAttribute('normal', new THREE.BufferAttribute(normArray, 3));
+                
+                return combinedGeo;
+            };
+
+            const personGeo = createPersonGeometry();
+            // INCREASED COUNT
+            const count = 2800; 
+            
+            // Updated Palette: Brighter Neons (Replaced Dark colors)
+            const colorPalette = [
+                new THREE.Color(0x00FFFF), // Electric Cyan
+                new THREE.Color(0x40E0D0), // Neon Turquoise
+                new THREE.Color(0x1E90FF), // Dodger Blue (Bright)
+                new THREE.Color(0x00BFFF), // Deep Sky Blue (Bright)
+                new THREE.Color(0x7B68EE), // Medium Slate Blue (Bright)
+                new THREE.Color(0x8A2BE2), // BlueViolet (Bright)
+                new THREE.Color(0x9932CC)  // DarkOrchid (Bright Purple)
+            ];
+
+            // Switched to MeshLambertMaterial to react to light (Spotlight)
+            const material = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            const mesh = new THREE.InstancedMesh(personGeo, material, count);
+            scene.add(mesh);
+
+            const dummy = new THREE.Object3D();
+            const agents = [];
+
+            // Spawn Agents
+            for (let i = 0; i < count; i++) {
+                // INCREASED SPREAD on X
+                const x = (Math.random() - 0.5) * 400; 
+                // DEEPER Z
+                const z = (Math.random() - 0.5) * 200; 
+                
+                const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                mesh.setColorAt(i, color);
+
+                const bobOffset = Math.random() * Math.PI * 2;
+                const bobSpeed = 2 + Math.random() * 2;
+
+                agents.push({ x, z, bobOffset, bobSpeed });
+            }
+            
+            mesh.instanceColor.needsUpdate = true;
+
+            // --- SCANNER EFFECT ---
+            // WIDER Scan
+            const scanGeo = new THREE.PlaneGeometry(400, 2); 
+            // MeshBasicMaterial ignores lights, so it stays bright always
+            const scanMat = new THREE.MeshBasicMaterial({ 
+                color: 0xffffff, // Crystal White
+                transparent: true, 
+                opacity: 0, 
+                side: THREE.DoubleSide 
+            });
+            const scanLine = new THREE.Mesh(scanGeo, scanMat);
+            scanLine.rotation.x = -Math.PI / 2;
+            scanLine.position.y = 4;
+            scene.add(scanLine);
+
+            const scanTl = gsap.timeline({ repeat: -1, repeatDelay: 3 });
+            const scanProgress = { val: 0 };
+            scanTl.to(scanProgress, { val: 1, duration: 2, ease: "linear" })
+                  .set(scanProgress, { val: 0 }); 
+
+
+            // --- ANIMATION LOOP ---
+            const clock = new THREE.Clock();
+
+            const animate = () => {
+                const time = clock.getElapsedTime();
+
+                // DRONE FLIGHT: Move Camera Forward
+                camera.position.z -= 0.05; 
+
+                // Agents
+                agents.forEach((agent, i) => {
+                    // Recycle - INCREASED LIMIT
+                    if (agent.z > camera.position.z + 20) {
+                        agent.z -= 220; 
+                    }
+
+                    // Idle Animation
+                    const y = Math.abs(Math.sin(time * agent.bobSpeed + agent.bobOffset)) * 0.05;
+                    const sway = Math.sin(time * 1 + agent.bobOffset) * 0.02;
+
+                    dummy.position.set(agent.x, y, agent.z);
+                    dummy.rotation.z = sway; 
+                    dummy.scale.set(1, 1, 1);
+                    dummy.updateMatrix();
+                    mesh.setMatrixAt(i, dummy.matrix);
+                });
+
+                mesh.instanceMatrix.needsUpdate = true;
+
+                // Scanner
+                if (scanProgress.val > 0) {
+                    scanLine.position.z = camera.position.z - 10 - (scanProgress.val * 50);
+                    const opacity = Math.sin(scanProgress.val * Math.PI); 
+                    scanLine.material.opacity = opacity * 0.7; 
+                } else {
+                    scanLine.material.opacity = 0;
+                }
+                
+                // Camera Sway
+                camera.position.x = Math.sin(time * 0.2) * 2;
+
+                renderer.render(scene, camera);
+                requestAnimationFrame(animate);
+            };
+
+            animate();
+
+
+            // --- INTERACTION ---
+            document.addEventListener('mousemove', (e) => {
+                const mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+                const mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+
+                gsap.to(camera.rotation, {
+                    x: -mouseY * 0.15,
+                    y: -mouseX * 0.15,
+                    duration: 0.5,
+                    ease: "power2.out"
+                });
+                
+                gsap.to(camera.position, {
+                    x: Math.sin(clock.getElapsedTime() * 0.2) * 2 + (mouseX * 2), 
+                    y: 10 + mouseY * 1,
+                    duration: 0.5,
+                    ease: "power2.out"
+                });
+            });
+
+
+            // Resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        };
+
+        /* --- SCROLL REVEAL (GSAP SCROLLTRIGGER) --- */
+        const initScroll = () => {
+            gsap.registerPlugin(ScrollTrigger);
+
+            // Hero Text Entrance
+            gsap.fromTo(".hero-content", 
+                { opacity: 0, y: 50 }, 
+                { opacity: 1, y: 0, duration: 1.5, ease: "power3.out", delay: 0.5 }
+            );
+
+            // SECTION TITLE TEXT ANIMATION (Word by Word)
+            const wrappers = document.querySelectorAll(".word-wrapper");
+            gsap.fromTo(wrappers, 
+                { opacity: 0, y: 40, rotateX: 45 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    rotateX: 0,
+                    duration: 0.8,
+                    stagger: 0.1,
+                    ease: "power3.out",
+                    scrollTrigger: {
+                        trigger: ".section-title",
+                        start: "top 80%",
+                        toggleActions: "play none none reverse"
+                    }
+                }
+            );
+
+            // DESCRIPTION TEXT ANIMATION (Line by Line)
+            const descLines = document.querySelectorAll(".animated-line");
+            gsap.fromTo(descLines,
+                { opacity: 0, y: 20 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.8,
+                    stagger: 0.15,
+                    ease: "power3.out",
+                    scrollTrigger: {
+                        trigger: ".desc-text",
+                        start: "top 80%",
+                        toggleActions: "play none none reverse"
+                    }
+                }
+            );
+
+            // FEATURE CARDS Animation
+            const featureItems = document.querySelectorAll('.feature-card');
+            gsap.to(featureItems, {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.2,
+                ease: "back.out(1.2)",
+                scrollTrigger: {
+                    trigger: ".pop-group",
+                    start: "top 75%",
+                    toggleActions: "play none none reverse"
+                }
+            });
+
+            // Single Element Pop (New)
+            const popSingles = document.querySelectorAll('.pop-single');
+            popSingles.forEach(el => {
+                gsap.fromTo(el, 
+                    { autoAlpha: 0, y: 50, scale: 0.9 }, 
+                    { 
+                        autoAlpha: 1, 
+                        y: 0, 
+                        scale: 1,
+                        duration: 0.8, 
+                        ease: "back.out(1.7)", 
+                        scrollTrigger: {
+                            trigger: el,
+                            start: "top 85%",
+                            toggleActions: "play none none reverse"
+                        }
+                    }
+                );
+            });
+
+            // Standard Reveal Elements on Scroll (Fades)
+            const revealElements = document.querySelectorAll(".reveal");
+            revealElements.forEach(el => {
+                gsap.fromTo(el, 
+                    { autoAlpha: 0, y: 50 }, 
+                    { 
+                        autoAlpha: 1, 
+                        y: 0, 
+                        duration: 1, 
+                        ease: "power3.out",
+                        scrollTrigger: {
+                            trigger: el,
+                            start: "top 85%", // Trigger when top of element hits 85% of viewport height
+                            toggleActions: "play none none reverse"
+                        }
+                    }
+                );
+            });
+        };
+
+        /* --- NAVBAR SCROLL --- */
+        const initNav = () => {
+            const nav = document.querySelector('.navbar');
+            window.addEventListener('scroll', () => {
+                const currentScroll = window.pageYOffset;
+                if (currentScroll > 50) {
+                    nav.style.background = 'rgba(2, 4, 8, 0.95)';
+                } else {
+                    nav.style.background = 'rgba(2, 4, 8, 0.85)';
+                }
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initThreeScene();
+            initScroll();
+            initNav();
+            initStatusCycle();
+        });
+
+    </script>
+</body>
+</html>
