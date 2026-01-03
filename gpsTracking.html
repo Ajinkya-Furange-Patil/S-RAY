@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>S-RAY Surveillance v7.0 - Integrated System</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;500;700&display=swap");
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #050510;
+        font-family: "Rajdhani", sans-serif;
+        color: white;
+        transition: box-shadow 0.3s ease;
+      }
+
+      /* --- UTILITY CLASSES --- */
+      .font-orbitron {
+        font-family: "Orbitron", sans-serif;
+      }
+      .hidden {
+        display: none !important;
+      }
+
+      /* CRITICAL ALERT ATMOSPHERE */
+      body.critical-mode {
+        box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.3);
+      }
+      body.critical-mode::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 0, 0, 0.1) 0%,
+          transparent 10%,
+          transparent 90%,
+          rgba(255, 0, 0, 0.1) 100%
+        );
+        pointer-events: none;
+        z-index: 9999;
+        animation: pulse-screen 1s infinite alternate;
+      }
+
+      @keyframes pulse-screen {
+        from {
+          opacity: 0.3;
+        }
+        to {
+          opacity: 0.7;
+        }
+      }
+
+      #canvas-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+
+      /* Glassmorphism Panels */
+      .glass-panel {
+        background: rgba(16, 20, 30, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      /* Dynamic Border Glow */
+      .glass-panel:hover {
+        border-color: rgba(0, 240, 255, 0.5);
+        box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.1);
+      }
+
+      .tech-border {
+        position: relative;
+      }
+
+      .tech-border::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00f0ff, transparent);
+        opacity: 0.5;
+      }
+
+      .tech-text {
+        font-family: "Orbitron", sans-serif;
+        letter-spacing: 2px;
+      }
+
+      /* INPUT STYLING */
+      .cyber-input {
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid #00f0ff;
+        color: #00f0ff;
+        font-family: "Orbitron", sans-serif;
+        padding: 10px;
+        outline: none;
+        transition: all 0.3s ease;
+      }
+      .cyber-input:focus {
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        background: rgba(0, 40, 60, 0.8);
+      }
+
+      /* Map Styling */
+      #map {
+        width: 100%;
+        height: 100%;
+        background: #0f172a; /* Fallback */
+        z-index: 1;
+      }
+
+      /* Custom Leaflet Dark Mode tweaks */
+      .leaflet-container {
+        background: #000 !important;
+      }
+      .leaflet-control-attribution {
+        display: none !important;
+      }
+
+      /* Network Lines Animation */
+      .flow-line {
+        stroke-dasharray: 5, 10;
+        animation: flow-dash 1s linear infinite;
+      }
+      .flow-line.heavy {
+        stroke-dasharray: 10, 5;
+        animation: flow-dash 0.5s linear infinite;
+      }
+
+      @keyframes flow-dash {
+        to {
+          stroke-dashoffset: -15;
+        }
+      }
+
+      /* Camera Scanner Effect */
+      .scanner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        z-index: 20;
+      }
+
+      .scan-line {
+        width: 100%;
+        height: 2px;
+        background: rgba(0, 240, 255, 0.8);
+        box-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+        position: absolute;
+        top: 0;
+        animation: scan 4s linear infinite;
+      }
+
+      @keyframes scan {
+        0% {
+          top: 0%;
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          top: 100%;
+          opacity: 0;
+        }
+      }
+
+      .corner {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-color: #00f0ff;
+        border-style: solid;
+      }
+      .tl {
+        top: 0;
+        left: 0;
+        border-width: 2px 0 0 2px;
+      }
+      .tr {
+        top: 0;
+        right: 0;
+        border-width: 2px 2px 0 0;
+      }
+      .bl {
+        bottom: 0;
+        left: 0;
+        border-width: 0 0 2px 2px;
+      }
+      .br {
+        bottom: 0;
+        right: 0;
+        border-width: 0 2px 2px 0;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.3);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #00f0ff;
+        border-radius: 3px;
+      }
+
+      .stat-value {
+        text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        transition: all 0.3s ease;
+      }
+
+      /* Hidden container for Chart.js rendering */
+      #chart-staging-area {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        width: 600px;
+        height: 400px;
+        background: white;
+      }
+
+      /* Critical Alert Modal Animation */
+      @keyframes slideDown {
+        from {
+          transform: translate(-50%, -100%);
+          opacity: 0;
+        }
+        to {
+          transform: translate(-50%, 0);
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .main-grid {
+          grid-template-columns: 1fr;
+          overflow-y: auto;
+        }
+        .col-span-3,
+        .col-span-6 {
+          grid-column: span 1;
+        }
+        body {
+          overflow: auto;
+        }
+      }
+    </style>
+  </head>
+  <body class="h-screen w-screen flex flex-col p-4 gap-4 box-border">
+    <div id="canvas-container"></div>
+
+    <div id="chart-staging-area">
+      <canvas id="pdf-chart-pie" width="400" height="400"></canvas>
+    </div>
+
+    <div
+      id="landing-page"
+      class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md"
+    >
+      <div
+        class="glass-panel p-10 rounded-xl text-center max-w-2xl w-full border-t-4 border-t-cyan-500"
+      >
+        <i
+          data-lucide="scan-eye"
+          class="w-20 h-20 text-cyan-400 mx-auto mb-6 animate-pulse"
+        ></i>
+        <h1 class="text-5xl font-orbitron text-white font-bold mb-2">S-RAY</h1>
+        <p class="text-cyan-400/80 tracking-widest mb-10 text-sm">
+          SURVEILLANCE & GEO-SPATIAL INTELLIGENCE
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <button
+            onclick="startSensorMode()"
+            class="group relative p-6 border border-gray-600 hover:border-cyan-400 rounded transition-all bg-black/40 hover:bg-cyan-900/20 text-left"
+          >
+            <div
+              class="absolute top-2 right-2 text-cyan-500 opacity-0 group-hover:opacity-100 transition"
+            >
+              <i data-lucide="arrow-right"></i>
+            </div>
+            <h3 class="font-bold text-xl text-white mb-2">UPLINK NODE</h3>
+            <p class="text-xs text-gray-400">
+              Connect this device as a data collection sensor.
+            </p>
+          </button>
+
+          <button
+            onclick="showLogin()"
+            class="group relative p-6 border border-gray-600 hover:border-red-400 rounded transition-all bg-black/40 hover:bg-red-900/20 text-left"
+          >
+            <div
+              class="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition"
+            >
+              <i data-lucide="lock"></i>
+            </div>
+            <h3 class="font-bold text-xl text-white mb-2">COMMAND CENTER</h3>
+            <p class="text-xs text-gray-400">
+              Admin access. Requires Level 5 Security Clearance.
+            </p>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="login-view"
+      class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90"
+    >
+      <div class="glass-panel p-8 rounded-lg w-full max-w-md relative">
+        <button
+          onclick="cancelLogin()"
+          class="absolute top-4 right-4 text-gray-500 hover:text-white"
+        >
+          <i data-lucide="x"></i>
+        </button>
+
+        <h2 class="text-2xl font-orbitron text-cyan-400 mb-6 text-center">
+          IDENTITY VERIFICATION
+        </h2>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs text-cyan-600 mb-1 tracking-widest"
+              >AGENT ID</label
+            >
+            <input
+              type="text"
+              id="username"
+              class="w-full cyber-input rounded"
+              placeholder="Enter Agent ID"
+            />
+          </div>
+          <div>
+            <label class="block text-xs text-cyan-600 mb-1 tracking-widest"
+              >ACCESS CODE</label
+            >
+            <input
+              type="password"
+              id="password"
+              class="w-full cyber-input rounded"
+              placeholder="••••••••••"
+            />
+          </div>
+
+          <div
+            id="login-error"
+            class="hidden text-red-500 text-xs text-center font-mono border border-red-500/50 p-2 bg-red-900/20"
+          >
+            ACCESS DENIED: INVALID CREDENTIALS
+          </div>
+
+          <button
+            onclick="checkLogin()"
+            class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded border border-cyan-400 shadow-[0_0_15px_cyan] mt-4 transition-all"
+          >
+            AUTHENTICATE
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="sensor-view"
+      class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-black"
+    >
+      <div
+        class="glass-panel p-8 rounded-full w-64 h-64 flex flex-col items-center justify-center border-4 border-cyan-500 relative animate-pulse"
+      >
+        <div
+          class="absolute inset-0 rounded-full border border-cyan-200 opacity-30 animate-ping"
+        ></div>
+        <i data-lucide="radio" class="w-12 h-12 text-cyan-400 mb-2"></i>
+        <h2 class="text-xl font-bold text-white">ACTIVE</h2>
+        <p class="text-xs text-cyan-300 font-mono mt-2">SENDING PACKETS</p>
+      </div>
+      <div class="mt-8 text-center">
+        <p class="text-gray-500 text-xs font-mono mb-2">SESSION ID</p>
+        <p
+          id="displaySessionId"
+          class="text-cyan-400 font-mono text-lg tracking-widest border border-cyan-800 px-4 py-1 rounded bg-black/50"
+        >
+          LOADING...
+        </p>
+        <p class="text-gray-600 text-[10px] mt-4">DO NOT CLOSE THIS WINDOW</p>
+        <p class="text-gray-600 text-[10px]">
+          LAST PING: <span id="lastPingTime">--:--:--</span>
+        </p>
+      </div>
+    </div>
+
+    <div
+      id="setupModal"
+      class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm items-center justify-center"
+    >
+      <div class="glass-panel w-full max-w-lg p-6 rounded-lg relative">
+        <button
+          onclick="closeSetupModal()"
+          class="absolute top-4 right-4 text-gray-400 hover:text-white"
+        >
+          <i data-lucide="x"></i>
+        </button>
+        <h3
+          class="text-xl font-orbitron text-white mb-6 border-b border-gray-700 pb-2"
+        >
+          CONFIGURE NEW SECTOR
+        </h3>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="text-xs text-cyan-500">SECTOR NAME</label>
+            <input
+              type="text"
+              id="zoneName"
+              class="w-full cyber-input rounded"
+              placeholder="e.g. North Gate A"
+            />
+          </div>
+          <div>
+            <label class="text-xs text-cyan-500">LATITUDE</label>
+            <input
+              type="text"
+              id="zoneLat"
+              class="w-full cyber-input rounded"
+              placeholder="0.0000"
+            />
+          </div>
+          <div>
+            <label class="text-xs text-cyan-500">LONGITUDE</label>
+            <input
+              type="text"
+              id="zoneLng"
+              class="w-full cyber-input rounded"
+              placeholder="0.0000"
+            />
+          </div>
+          <div>
+            <label class="text-xs text-cyan-500">RADIUS (M)</label>
+            <input
+              type="number"
+              id="zoneRadius"
+              class="w-full cyber-input rounded"
+              value="50"
+            />
+          </div>
+          <div>
+            <label class="text-xs text-cyan-500">DENSITY LIMIT</label>
+            <input
+              type="number"
+              id="zoneLimit"
+              class="w-full cyber-input rounded"
+              value="100"
+            />
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end gap-2">
+          <button
+            onclick="closeSetupModal()"
+            class="px-4 py-2 text-sm text-gray-400 hover:text-white"
+          >
+            CANCEL
+          </button>
+          <button
+            onclick="submitSetup()"
+            class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold text-sm"
+          >
+            INITIALIZE SECTOR
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="critical-alert-box"
+      class="hidden fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-red-950/90 border-2 border-red-500 text-white px-8 py-4 rounded-lg shadow-[0_0_50px_rgba(255,0,0,0.6)] items-center gap-4 animate-[slideDown_0.5s_ease-out]"
+    >
+      <div class="bg-red-500 p-2 rounded-full animate-pulse">
+        <i data-lucide="siren" class="w-8 h-8 text-white"></i>
+      </div>
+      <div>
+        <h2
+          class="font-orbitron font-bold text-xl tracking-widest text-red-100"
+        >
+          CRITICAL CONGESTION DETECTED
+        </h2>
+        <p id="critical-alert-text" class="font-mono text-xs text-red-300">
+          DISPATCHING AUTOMATED ALERT TO STAKEHOLDERS...
+        </p>
+      </div>
+    </div>
+
+    <div
+      id="dashboard-view"
+      class="hidden h-full flex-col relative z-10 w-full"
+    >
+      <div class="main-grid flex-1 grid grid-cols-12 gap-4 h-full relative">
+        <div class="col-span-3 flex flex-col gap-4 min-h-[300px]">
+          <div
+            class="glass-panel h-24 rounded-lg flex items-center justify-center tech-border relative overflow-hidden group shrink-0"
+          >
+            <div
+              class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            ></div>
+            <div class="flex items-center gap-2">
+              <i data-lucide="globe" class="text-cyan-400 w-8 h-8"></i>
+              <span class="tech-text font-bold text-xl text-white">S-RAY</span>
+            </div>
+          </div>
+
+          <div
+            class="glass-panel flex-1 rounded-lg p-6 flex flex-col items-center relative overflow-hidden"
+          >
+            <div
+              class="w-24 h-24 rounded-full border-2 border-cyan-400 p-1 mb-4 relative"
+            >
+              <img
+                src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"
+                alt="User"
+                class="w-full h-full rounded-full bg-slate-800"
+              />
+              <div
+                class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse"
+              ></div>
+            </div>
+
+            <h2 class="text-2xl font-bold tech-text text-white">COMMANDER</h2>
+            <p class="text-cyan-400/70 text-sm tracking-wider mb-6">
+              CLEARANCE: LEVEL 5
+            </p>
+
+            <div class="w-full space-y-4">
+              <div
+                class="flex justify-between items-center border-b border-white/10 pb-2"
+              >
+                <span class="text-gray-400">Sat-Link</span>
+                <span id="connectionStatus" class="text-green-400 font-bold"
+                  >CONNECTED</span
+                >
+              </div>
+              <div
+                class="flex justify-between items-center border-b border-white/10 pb-2"
+              >
+                <span class="text-gray-400">Drone Feed</span>
+                <span class="text-white" id="model-status">Standby...</span>
+              </div>
+              <div
+                class="flex justify-between items-center border-b border-white/10 pb-2"
+              >
+                <span class="text-gray-400">Network Grid</span>
+                <span
+                  class="text-white font-mono text-purple-400"
+                  id="network-status"
+                  >INACTIVE</span
+                >
+              </div>
+            </div>
+
+            <div class="mt-auto w-full pt-4 space-y-2">
+              <button
+                onclick="openSetupModal()"
+                class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-300 p-2 rounded flex items-center justify-center gap-2 transition-all text-xs"
+              >
+                <i data-lucide="plus-circle" class="w-3 h-3"></i>
+                ADD SECTOR
+              </button>
+              <button
+                onclick="generatePDFReport()"
+                class="w-full bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500 text-cyan-300 p-3 rounded flex items-center justify-center gap-2 transition-all"
+              >
+                <i data-lucide="file-down" class="w-4 h-4"></i>
+                MISSION REPORT
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-span-6 flex flex-col min-h-[400px]">
+          <div class="glass-panel flex-1 rounded-lg p-1 relative flex flex-col">
+            <div
+              class="h-10 flex justify-between items-center px-4 bg-black/20 rounded-t mb-1 shrink-0"
+            >
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+                <span
+                  id="sector-label"
+                  class="text-red-500 font-bold tracking-widest text-xs"
+                  >LIVE DRONE FEED // SECTOR 9 - NEW DELHI</span
+                >
+              </div>
+              <div class="text-xs text-cyan-400 font-mono" id="clock">
+                00:00:00
+              </div>
+            </div>
+
+            <div
+              class="flex-1 bg-black relative rounded overflow-hidden group min-h-0 flex items-center justify-center"
+              id="video-container"
+            >
+              <div id="map"></div>
+
+              <div
+                id="camera-placeholder"
+                class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-30"
+              >
+                <i
+                  data-lucide="satellite"
+                  class="w-16 h-16 text-cyan-500 mb-4 animate-pulse"
+                ></i>
+                <h3 class="text-xl text-white font-bold mb-2">
+                  SATELLITE UPLINK
+                </h3>
+                <p class="text-gray-500 mb-6 text-sm">
+                  Establish Geo-Spatial Drone Link
+                </p>
+
+                <button
+                  onclick="initSystem()"
+                  id="init-btn"
+                  class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold transition-all border border-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.5)]"
+                >
+                  ESTABLISH LINK
+                </button>
+                <p
+                  id="loading-text"
+                  class="hidden text-cyan-400 mt-4 animate-pulse text-xs tracking-widest"
+                >
+                  CALIBRATING GPS...
+                </p>
+              </div>
+
+              <div class="scanner-overlay z-20 pointer-events-none">
+                <div class="scan-line"></div>
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+
+                <div
+                  class="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded border border-cyan-500/30 text-[10px] text-cyan-400 font-mono"
+                >
+                  LAT: <span id="lat-display">0.00</span> | LNG:
+                  <span id="lng-display">0.00</span>
+                </div>
+
+                <div
+                  class="absolute bottom-4 right-4 w-12 h-12 border border-cyan-500/30 rounded-full flex items-center justify-center bg-black/40"
+                >
+                  <span class="text-xs text-cyan-400 font-bold">N</span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="h-12 bg-black/40 mt-1 rounded-b flex items-center justify-center gap-4 shrink-0"
+            >
+              <button
+                onclick="toggleNetworkLayer()"
+                class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition relative"
+                title="Toggle Network Grid"
+              >
+                <i data-lucide="wifi" class="w-5 h-5"></i>
+                <div
+                  id="network-indicator"
+                  class="hidden absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full"
+                ></div>
+              </button>
+              <button
+                onclick="panToCenter()"
+                class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
+                title="Re-Center Drone"
+              >
+                <i data-lucide="crosshair" class="w-5 h-5"></i>
+              </button>
+              <button
+                onclick="spawnWave()"
+                class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
+                title="Simulate Crowd Surge"
+              >
+                <i data-lucide="users" class="w-5 h-5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-span-3 flex flex-col gap-4 min-h-[300px]">
+          <div class="glass-panel flex-1 rounded-lg p-6 flex flex-col">
+            <h3
+              class="text-xl tech-text text-cyan-400 mb-6 border-b border-cyan-500/30 pb-2"
+            >
+              TARGET ANALYSIS
+            </h3>
+
+            <div class="flex-1 flex flex-col gap-6 justify-center">
+              <div
+                class="bg-gradient-to-r from-blue-900/40 to-transparent p-4 rounded-l-lg border-l-4 border-blue-500 transition-all hover:bg-blue-900/60"
+              >
+                <p
+                  class="text-[10px] text-gray-400 uppercase tracking-widest mb-1"
+                >
+                  TRACKED ENTITIES
+                </p>
+                <div class="flex items-end gap-2">
+                  <span
+                    id="total-count"
+                    class="text-6xl font-bold stat-value text-white"
+                    >0</span
+                  >
+                  <span class="text-xs text-blue-400 mb-2 font-mono"
+                    >Active</span
+                  >
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <p
+                  class="text-[10px] text-gray-500 uppercase tracking-widest border-b border-gray-700 pb-1"
+                >
+                  BIOMETRICS
+                </p>
+
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-green-400"
+                      ><i data-lucide="network" class="inline w-3 h-3"></i>
+                      Network Load</span
+                    >
+                    <span
+                      id="network-load-val"
+                      class="font-mono text-xs text-green-200"
+                      >NORMAL</span
+                    >
+                  </div>
+                  <div
+                    class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden"
+                  >
+                    <div
+                      id="network-load-bar"
+                      class="bg-green-500 h-full w-0 transition-all duration-300"
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-yellow-400"
+                      ><i data-lucide="activity" class="inline w-3 h-3"></i>
+                      Crowd Sentiment</span
+                    >
+                    <span
+                      id="dominant-emotion"
+                      class="font-mono text-xs uppercase text-yellow-200"
+                      >NEUTRAL</span
+                    >
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-cyan-400"
+                      ><i data-lucide="map-pin" class="inline w-3 h-3"></i>
+                      Sector Density</span
+                    >
+                    <span id="current-density" class="font-mono text-xs"
+                      >Low</span
+                    >
+                  </div>
+                  <div
+                    class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden"
+                  >
+                    <div
+                      id="density-bar-live"
+                      class="bg-cyan-500 h-full w-0 transition-all duration-300"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="hidden"><span id="latest-uid"></span></div>
+
+            <div
+              class="mt-6 h-32 overflow-hidden relative border-t border-white/5 pt-2"
+            >
+              <div
+                class="absolute inset-0 bg-gradient-to-t from-gray-900/90 to-transparent pointer-events-none"
+              ></div>
+              <div
+                id="detection-log"
+                class="text-[10px] font-mono space-y-1 text-gray-400 h-full overflow-y-auto pr-2"
+              >
+                <p>[System] Drone link standby...</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onclick="toggleLockdown()"
+            class="glass-panel h-20 rounded-lg p-4 flex items-center justify-between group hover:bg-red-900/20 transition-colors cursor-pointer border-red-500/20 hover:border-red-500/50 w-full text-left"
+          >
+            <div>
+              <h4 class="text-red-400 font-bold text-sm tracking-wider">
+                CONTAINMENT
+              </h4>
+              <p class="text-[10px] text-red-300/60">Lockdown Sector</p>
+            </div>
+            <div
+              class="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center group-hover:bg-red-500 group-hover:text-black transition-all"
+            >
+              <i data-lucide="siren" class="w-4 h-4"></i>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Initialize Lucide Icons
+      lucide.createIcons();
+
+      // --- 3D Background (Three.js) ---
+      const initThreeJS = () => {
+        const container = document.getElementById("canvas-container");
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // Particles
+        const geometry = new THREE.BufferGeometry();
+        const particlesCount = 700;
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i++) {
+          posArray[i] = (Math.random() - 0.5) * 15; // Spread
+        }
+
+        geometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(posArray, 3)
+        );
+        const material = new THREE.PointsMaterial({
+          size: 0.02,
+          color: 0x00f0ff,
+        });
+        const particlesMesh = new THREE.Points(geometry, material);
+        scene.add(particlesMesh);
+
+        camera.position.z = 3;
+
+        // Animation
+        const animate = () => {
+          requestAnimationFrame(animate);
+          particlesMesh.rotation.y += 0.001;
+          particlesMesh.rotation.x += 0.0005;
+          renderer.render(scene, camera);
+        };
+        animate();
+
+        window.addEventListener("resize", () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      };
+
+      initThreeJS();
+
+      // --- CLOCK ---
+      setInterval(() => {
+        const now = new Date();
+        document.getElementById("clock").innerText = now.toLocaleTimeString(
+          "en-US",
+          { hour12: false }
+        );
+      }, 1000);
+
+      // ============================================
+      //          CROWDSENSE LOGIC INTEGRATION
+      // ============================================
+
+      const GOOGLE_SCRIPT_URL =
+        "https://script.google.com/macros/s/AKfycbwQRQSRCC2TSPImjmfe2o_ghK43W-astnJOKDPimVhUrd6oWwq2y-HwS2KglyWwjU8pPA/exec";
+
+      let sessionId = localStorage.getItem("cs_session_id") || generateUUID();
+      localStorage.setItem("cs_session_id", sessionId);
+      let map,
+        circles = [],
+        markers = [],
+        adminMarker;
+      let networkLayerVisible = false;
+
+      // --- Auth Logic ---
+      function showLogin() {
+        document.getElementById("landing-page").classList.add("hidden");
+        document.getElementById("login-view").classList.remove("hidden");
+      }
+
+      function cancelLogin() {
+        document.getElementById("login-view").classList.add("hidden");
+        document.getElementById("landing-page").classList.remove("hidden");
+        // Clear inputs
+        document.getElementById("username").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("login-error").classList.add("hidden");
+      }
+
+      function checkLogin() {
+        const user = document.getElementById("username").value;
+        const pass = document.getElementById("password").value;
+        const errorMsg = document.getElementById("login-error");
+
+        if (user === "admin" && pass === "1223334444") {
+          // Success: Go straight to Dashboard
+          document.getElementById("login-view").classList.add("hidden");
+          startOwnerMode(); // This initializes the dashboard view
+        } else {
+          errorMsg.classList.remove("hidden");
+        }
+      }
+
+      // --- Navigation ---
+      function startSensorMode() {
+        document.getElementById("landing-page").style.display = "none";
+        document.getElementById("sensor-view").classList.remove("hidden");
+        document.getElementById("displaySessionId").innerText =
+          sessionId.substring(0, 8);
+
+        if ("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition(sendPing, handleError);
+          setInterval(() => {
+            navigator.geolocation.getCurrentPosition(sendPing, handleError);
+          }, 15000);
+        } else {
+          alert("GPS hardware not detected.");
+        }
+      }
+
+      function startOwnerMode() {
+        // Ensure landing page is hidden
+        document.getElementById("landing-page").classList.add("hidden");
+        document.getElementById("landing-page").style.display = "none";
+
+        const dashboard = document.getElementById("dashboard-view");
+        dashboard.classList.remove("hidden");
+        dashboard.style.display = "flex";
+
+        // Needed for Leaflet to size correctly after being hidden
+        setTimeout(initMap, 100);
+
+        // Wait for manual init or auto init
+        // fetchDashboardData();
+        locateAdmin();
+      }
+
+      function locateAdmin() {
+        if ("geolocation" in navigator && map) {
+          navigator.geolocation.getCurrentPosition((pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+
+            // Remove old admin marker
+            if (adminMarker) map.removeLayer(adminMarker);
+
+            // Add Bold Blue Dot for Ownself
+            adminMarker = L.circleMarker([lat, lng], {
+              color: "#0044ff", // Darker blue border
+              fillColor: "#0088ff", // Bright blue fill
+              fillOpacity: 1,
+              radius: 8, // Larger size
+              weight: 3,
+            }).addTo(map);
+
+            adminMarker.bindPopup("<b>ADMINISTRATOR</b><br>LIVE LOCATION");
+
+            // Only pan once initially so we don't annoy user
+            if (!map.getCenter().lat) map.setView([lat, lng], 16);
+          });
+        }
+      }
+
+      function openSetupModal() {
+        const modal = document.getElementById("setupModal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+
+        if ("geolocation" in navigator) {
+          document.getElementById("zoneLat").value = "";
+          document.getElementById("zoneLng").value = "";
+          navigator.geolocation.getCurrentPosition((pos) => {
+            document.getElementById("zoneLat").value =
+              pos.coords.latitude.toFixed(6);
+            document.getElementById("zoneLng").value =
+              pos.coords.longitude.toFixed(6);
+          });
+        }
+      }
+
+      function closeSetupModal() {
+        const modal = document.getElementById("setupModal");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+
+      function submitSetup() {
+        const name = document.getElementById("zoneName").value;
+        const lat = document.getElementById("zoneLat").value;
+        const lng = document.getElementById("zoneLng").value;
+        const radius = document.getElementById("zoneRadius").value;
+        const limit = document.getElementById("zoneLimit").value;
+
+        if (!name || !lat || !lng) return alert("MISSING SECTOR DATA");
+
+        const data = {
+          action: "register_area",
+          name: name,
+          lat: lat,
+          lng: lng,
+          radius: radius,
+          limit: limit,
+        };
+
+        fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(data),
+        })
+          .then((r) => r.json())
+          .then((d) => {
+            alert("SECTOR CONFIGURED: " + d.message);
+            closeSetupModal();
+          });
+      }
+
+      // --- Sensor Logic ---
+      function sendPing(position) {
+        const data = {
+          action: "ping",
+          sessionId: sessionId,
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        document.getElementById("lastPingTime").innerText =
+          new Date().toLocaleTimeString();
+
+        fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(data),
+        }).catch((e) => console.log("Ping dispatch", e));
+      }
+
+      function handleError(err) {
+        console.error(err);
+      }
+
+      // --- Dashboard Logic ---
+      function initSystem() {
+        const placeholder = document.getElementById("camera-placeholder");
+        const loadingText = document.getElementById("loading-text");
+        const btn = document.getElementById("init-btn");
+
+        btn.style.display = "none";
+        loadingText.classList.remove("hidden");
+
+        // Fake initialization delay
+        setTimeout(() => {
+          placeholder.style.display = "none";
+          document.getElementById("model-status").innerText = "ACTIVE";
+          document.getElementById("model-status").className =
+            "text-green-400 animate-pulse";
+          initMap();
+          fetchDashboardData();
+          setInterval(fetchDashboardData, 10000);
+          if (Notification.permission !== "granted")
+            Notification.requestPermission();
+        }, 2000);
+      }
+
+      function initMap() {
+        if (map) {
+          map.invalidateSize();
+          return;
+        }
+        // Default View (Vasai-Virar approx based on context, or default generic)
+        map = L.map("map", {
+          zoomControl: false,
+          attributionControl: false,
+        }).setView([19.3858, 72.8285], 16);
+
+        // Dark Matter Map Theme
+        L.tileLayer(
+          "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+          {
+            maxZoom: 19,
+          }
+        ).addTo(map);
+
+        // Mouse move for HUD
+        map.on("mousemove", function (e) {
+          document.getElementById("lat-display").innerText =
+            e.latlng.lat.toFixed(4);
+          document.getElementById("lng-display").innerText =
+            e.latlng.lng.toFixed(4);
+        });
+      }
+
+      async function fetchDashboardData() {
+        try {
+          const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getData`);
+          const data = await res.json();
+          updateUI(data);
+        } catch (e) {
+          console.error("Data Uplink Failed", e);
+          document.getElementById("connectionStatus").innerText = "OFFLINE";
+          document
+            .getElementById("connectionStatus")
+            .classList.replace("text-green-400", "text-red-500");
+        }
+      }
+
+      function updateUI(data) {
+        // Update Counts
+        const total = data.totalActiveSensors || 0;
+        const counter = document.getElementById("total-count");
+        counter.innerText = total;
+
+        // Update Network Load Bar (Simulated based on count)
+        const loadPct = Math.min(total * 2, 100);
+        document.getElementById("network-load-bar").style.width = loadPct + "%";
+        document.getElementById("network-load-val").innerText =
+          loadPct > 80 ? "HIGH" : "NORMAL";
+
+        // Clear old layers
+        circles.forEach((c) => map.removeLayer(c));
+        circles = [];
+        markers.forEach((m) => map.removeLayer(m));
+        markers = [];
+
+        const log = document.getElementById("detection-log");
+        let globalDensity = 0;
+
+        if (data.areas && data.areas.length > 0) {
+          data.areas.forEach((area) => {
+            let density = area.currentCount / area.limit;
+            if (density > globalDensity) globalDensity = density;
+
+            let areaColor = "#00f0ff";
+            if (area.status === "moderate") areaColor = "#eab308";
+            if (area.status === "crowded") {
+              areaColor = "#ff0000";
+              logAlert(area);
+            }
+
+            // 1. Draw The Zone Boundary (Aggregate Circle)
+            const circle = L.circle([area.lat, area.lng], {
+              color: areaColor,
+              fillColor: areaColor,
+              fillOpacity: 0.05,
+              radius: area.radius,
+              weight: 1,
+              dashArray: "5, 5",
+            }).addTo(map);
+
+            circle.bindPopup(`
+                    <div class="p-1">
+                        <strong class="font-orbitron block border-b border-cyan-500/50 mb-1">${
+                          area.name
+                        }</strong>
+                        <div class="text-xs font-mono">
+                           COUNT: ${area.currentCount}/${area.limit}<br>
+                           STATUS: ${area.status.toUpperCase()}
+                        </div>
+                    </div>
+                `);
+            circles.push(circle);
+
+            // 2. Draw "People" Dots (Visualization of Active Count)
+            for (let i = 0; i < area.currentCount; i++) {
+              // Random point within circle math
+              const r = area.radius * Math.sqrt(Math.random());
+              const theta = Math.random() * 2 * Math.PI;
+
+              // Convert meters to lat/lng degrees (Approx)
+              const earthRadius = 6378137;
+              const dLat =
+                ((r * Math.cos(theta)) / earthRadius) * (180 / Math.PI);
+              const dLng =
+                ((r * Math.sin(theta)) /
+                  (earthRadius * Math.cos((Math.PI * area.lat) / 180))) *
+                (180 / Math.PI);
+
+              const dotLat = area.lat + dLat;
+              const dotLng = area.lng + dLng;
+
+              const dot = L.circleMarker([dotLat, dotLng], {
+                color: "transparent",
+                fillColor: "#80eaff", // Light Blue Dot
+                fillOpacity: 0.8,
+                radius: 2, // Small dot size
+              }).addTo(map);
+              markers.push(dot);
+            }
+          });
+        }
+
+        // Update Density Bar & Text
+        const bar = document.getElementById("density-bar-live");
+        const densityText = document.getElementById("current-density");
+
+        let pct = Math.min(globalDensity * 100, 100);
+        bar.style.width = pct + "%";
+
+        if (pct > 80) {
+          bar.className =
+            "h-full transition-all duration-500 bg-red-500 shadow-[0_0_10px_red]";
+          densityText.innerText = "CRITICAL";
+          densityText.className =
+            "font-mono text-xs text-red-500 animate-pulse";
+        } else if (pct > 50) {
+          bar.className = "h-full transition-all duration-500 bg-yellow-500";
+          densityText.innerText = "MODERATE";
+          densityText.className = "font-mono text-xs text-yellow-500";
+        } else {
+          bar.className = "h-full transition-all duration-500 bg-cyan-500";
+          densityText.innerText = "LOW";
+          densityText.className = "font-mono text-xs text-cyan-500";
+        }
+      }
+
+      function logAlert(area) {
+        const log = document.getElementById("detection-log");
+        const p = document.createElement("p");
+        p.className = "text-red-400 border-l-2 border-red-500 pl-2 mb-1";
+        p.innerText = `[ALERT] ${new Date().toLocaleTimeString()} - ${
+          area.name
+        } OVERLOAD`;
+        log.prepend(p);
+
+        if (Notification.permission === "granted") {
+          new Notification(`🚨 S-RAY ALERT: ${area.name}`, {
+            body: "Sector Capacity Exceeded",
+          });
+        }
+
+        // Trigger red UI
+        const alertBox = document.getElementById("critical-alert-box");
+        alertBox.classList.remove("hidden");
+        alertBox.classList.add("flex");
+        document.body.classList.add("critical-mode");
+
+        setTimeout(() => {
+          alertBox.classList.add("hidden");
+          alertBox.classList.remove("flex");
+          document.body.classList.remove("critical-mode");
+        }, 5000);
+      }
+
+      function generateUUID() {
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+          /[xy]/g,
+          function (c) {
+            var r = (Math.random() * 16) | 0,
+              v = c == "x" ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          }
+        );
+      }
+
+      // --- Helper Functions from HTML calls ---
+
+      function toggleNetworkLayer() {
+        networkLayerVisible = !networkLayerVisible;
+        const status = document.getElementById("network-status");
+        const indicator = document.getElementById("network-indicator");
+
+        if (networkLayerVisible) {
+          status.innerText = "VISUALIZING";
+          status.classList.replace("text-purple-400", "text-cyan-400");
+          indicator.classList.remove("hidden");
+          // Add a visual grid overlay
+          // (In a real app, this would be a specific Leaflet layer group)
+          alert("Network Grid Overlay Enabled");
+        } else {
+          status.innerText = "INACTIVE";
+          status.classList.replace("text-cyan-400", "text-purple-400");
+          indicator.classList.add("hidden");
+        }
+      }
+
+      function panToCenter() {
+        if (map) {
+          // Try to find a circle center or default
+          if (circles.length > 0) {
+            map.setView(circles[0].getLatLng(), 16);
+          } else {
+            map.setView([19.3858, 72.8285], 16);
+          }
+        }
+      }
+
+      function spawnWave() {
+        simulateCrowd();
+      }
+
+      function simulateCrowd() {
+        if (!map) return;
+        const center = map.getCenter();
+        for (let i = 0; i < 10; i++) {
+          const latOff = (Math.random() - 0.5) * 0.001;
+          const lngOff = (Math.random() - 0.5) * 0.001;
+          const fakeData = {
+            action: "ping",
+            sessionId: "BOT-" + generateUUID(),
+            lat: center.lat + latOff,
+            lng: center.lng + lngOff,
+          };
+          fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify(fakeData),
+          });
+        }
+
+        // Visual feedback
+        const log = document.getElementById("detection-log");
+        const p = document.createElement("p");
+        p.className = "text-purple-400 border-l-2 border-purple-500 pl-2 mb-1";
+        p.innerText = `[SIM] ${new Date().toLocaleTimeString()} - INJECTING 10 NODES`;
+        log.prepend(p);
+      }
+
+      function toggleLockdown() {
+        document.body.classList.toggle("critical-mode");
+        alert("SECTOR LOCKDOWN PROTOCOLS INITIATED");
+      }
+
+      function generatePDFReport() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Simple Report Generation
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.text("S-RAY SURVEILLANCE REPORT", 20, 20);
+
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 30);
+
+        doc.setLineWidth(0.5);
+        doc.line(20, 35, 190, 35);
+
+        // Data Dump
+        const total = document.getElementById("total-count").innerText;
+        const density = document.getElementById("current-density").innerText;
+
+        doc.text(`Total Active Entities: ${total}`, 20, 50);
+        doc.text(`Current Sector Density: ${density}`, 20, 60);
+        doc.text(`System Status: ONLINE`, 20, 70);
+
+        doc.save("mission_report.pdf");
+      }
+    </script>
+  </body>
+</html>

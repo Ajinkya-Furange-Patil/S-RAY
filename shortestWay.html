@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafePath | Crowd Sensing & Route Optimizaton</title>
+
+    <!-- Libraries -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+      :root {
+        --bg-dark: #050510;
+        --panel-bg: rgba(10, 15, 30, 0.85);
+        --neon-cyan: #00f3ff;
+        --neon-blue: #0066ff;
+        --neon-red: #ff0055;
+        --neon-yellow: #ffcc00;
+        --neon-green: #00ff99;
+        --text-main: #e0e0ff;
+        --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      body {
+        background-color: var(--bg-dark);
+        color: var(--text-main);
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* 3D Background Canvas */
+      #canvas-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2;
+        pointer-events: none;
+        mix-blend-mode: screen;
+        opacity: 0.6;
+      }
+
+      /* Map Container */
+      #map {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        filter: contrast(1.2) saturate(1.1);
+      }
+
+      /* UI Overlay Layer */
+      #ui-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        pointer-events: none; /* Let clicks pass to map */
+      }
+
+      /* Re-enable pointer events for UI elements */
+      .interactive {
+        pointer-events: auto;
+      }
+
+      /* HUD Header */
+      .hud-header {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        display: flex;
+        gap: 15px;
+      }
+
+      .hud-panel {
+        background: var(--panel-bg);
+        backdrop-filter: blur(10px);
+        border: var(--glass-border);
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .hud-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: var(--neon-cyan);
+      }
+      .hud-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: #889;
+      }
+
+      /* Density Meter */
+      .density-meter {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .bar-container {
+        width: 100px;
+        height: 6px;
+        background: #333;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .bar-fill {
+        height: 100%;
+        width: 0%;
+        transition: width 0.5s, background-color 0.5s;
+      }
+
+      /* Controls Bottom */
+      .controls-bottom {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 15px;
+      }
+
+      .btn {
+        background: linear-gradient(
+          135deg,
+          rgba(0, 102, 255, 0.2),
+          rgba(0, 243, 255, 0.1)
+        );
+        border: 1px solid var(--neon-cyan);
+        color: var(--neon-cyan);
+        padding: 12px 24px;
+        border-radius: 30px;
+        cursor: pointer;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+      }
+      .btn:hover {
+        background: var(--neon-cyan);
+        color: #000;
+        box-shadow: 0 0 20px var(--neon-cyan);
+      }
+      .btn-danger {
+        border-color: var(--neon-red);
+        color: var(--neon-red);
+        background: linear-gradient(
+          135deg,
+          rgba(255, 0, 85, 0.2),
+          rgba(255, 0, 85, 0.1)
+        );
+      }
+      .btn-danger:hover {
+        background: var(--neon-red);
+        color: white;
+        box-shadow: 0 0 20px var(--neon-red);
+      }
+
+      /* Notifications */
+      #notification-area {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 300px;
+      }
+      .toast {
+        background: rgba(0, 0, 0, 0.9);
+        border-left: 4px solid var(--neon-cyan);
+        padding: 15px;
+        border-radius: 4px;
+        color: white;
+        font-size: 0.9rem;
+        transform: translateX(120%);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .toast.warning {
+        border-color: var(--neon-red);
+      }
+      .toast.success {
+        border-color: var(--neon-green);
+      }
+
+      /* Login Modal */
+      #login-modal {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        background: #0a0f1e;
+        border: 1px solid var(--neon-blue);
+        padding: 40px;
+        border-radius: 12px;
+        display: none;
+        opacity: 0;
+        flex-direction: column;
+        gap: 15px;
+        box-shadow: 0 0 50px rgba(0, 102, 255, 0.3);
+        z-index: 100;
+        width: 300px;
+      }
+      #login-modal h2 {
+        text-align: center;
+        color: var(--neon-blue);
+        margin-bottom: 10px;
+      }
+      .input-group input {
+        width: 100%;
+        background: #151a2e;
+        border: 1px solid #333;
+        padding: 10px;
+        color: white;
+        border-radius: 4px;
+        margin-bottom: 10px;
+      }
+      .input-group input:focus {
+        outline: none;
+        border-color: var(--neon-cyan);
+      }
+
+      /* Admin Dashboard */
+      #admin-panel {
+        position: absolute;
+        top: 100px;
+        right: 20px;
+        width: 280px;
+        background: rgba(0, 0, 0, 0.85);
+        border: 1px solid var(--neon-yellow);
+        padding: 20px;
+        border-radius: 8px;
+        display: none;
+        color: var(--neon-yellow);
+      }
+      #admin-panel h3 {
+        margin-bottom: 15px;
+        border-bottom: 1px solid #333;
+        padding-bottom: 5px;
+      }
+      .zone-stat {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.85rem;
+      }
+
+      /* Leaflet Overrides */
+      .leaflet-bar a {
+        background: #111 !important;
+        color: #fff !important;
+        border-bottom: 1px solid #333 !important;
+      }
+      .leaflet-container {
+        background: #050510 !important;
+      }
+
+      /* Custom Markers */
+      .marker-pulse {
+        width: 12px;
+        height: 12px;
+        background: var(--neon-blue);
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(0, 102, 255, 0.7);
+        animation: pulse-blue 2s infinite;
+      }
+      @keyframes pulse-blue {
+        0% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(0, 102, 255, 0.7);
+        }
+        70% {
+          transform: scale(1);
+          box-shadow: 0 0 0 10px rgba(0, 102, 255, 0);
+        }
+        100% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(0, 102, 255, 0);
+        }
+      }
+
+      .user-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--neon-cyan);
+        border-radius: 50%;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 3D Particle Background -->
+    <div id="canvas-container"></div>
+
+    <!-- Map -->
+    <div id="map"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+      <!-- Header -->
+      <div class="hud-header interactive">
+        <div class="hud-panel">
+          <i data-lucide="clock" color="#00f3ff"></i>
+          <div>
+            <div id="clock-display" class="hud-value">12:00:00</div>
+            <div class="hud-label">System Time</div>
+          </div>
+        </div>
+
+        <div class="hud-panel">
+          <i data-lucide="users" color="#00f3ff"></i>
+          <div>
+            <div id="user-count" class="hud-value">0</div>
+            <div class="hud-label">Active Users</div>
+          </div>
+        </div>
+
+        <div class="hud-panel">
+          <i data-lucide="activity" color="#ff0055"></i>
+          <div class="density-meter">
+            <div class="hud-label">Global Risk</div>
+            <div class="bar-container">
+              <div
+                id="risk-bar"
+                class="bar-fill"
+                style="width: 20%; background: var(--neon-cyan)"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div id="notification-area"></div>
+
+      <!-- Controls -->
+      <div class="controls-bottom interactive">
+        <button class="btn" onclick="findSafePath()">
+          <i data-lucide="shield-check"></i> Find Safe Path
+        </button>
+        <button class="btn" onclick="toggleAdmin()">
+          <i data-lucide="lock"></i> Admin
+        </button>
+      </div>
+
+      <!-- Login Modal -->
+      <div id="login-modal" class="interactive">
+        <h2><i data-lucide="shield"></i> Admin Access</h2>
+        <div class="input-group">
+          <input type="text" id="admin-user" placeholder="Username (admin)" />
+          <input
+            type="password"
+            id="admin-pass"
+            placeholder="Password (1223334444)"
+          />
+        </div>
+        <button class="btn" onclick="adminLogin()">Authenticate</button>
+        <button
+          class="btn btn-danger"
+          onclick="closeLogin()"
+          style="margin-top: 10px; justify-content: center"
+        >
+          Cancel
+        </button>
+      </div>
+
+      <!-- Admin Dashboard -->
+      <div id="admin-panel" class="interactive">
+        <h3><i data-lucide="bar-chart-2"></i> Zone Monitor</h3>
+        <div id="zone-list">
+          <!-- Populated by JS -->
+        </div>
+        <div
+          style="
+            margin-top: 20px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+          "
+        >
+          <button
+            class="btn btn-danger"
+            style="width: 100%; justify-content: center; font-size: 0.8rem"
+            onclick="simulateSurge()"
+          >
+            <i data-lucide="zap"></i> Simulate Surge
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- 1. ICON INIT ---
+      lucide.createIcons();
+
+      // --- 2. GLOBAL STATE ---
+      const state = {
+        isAdmin: false,
+        zones: [],
+        users: [],
+        myLocation: null,
+        map: null,
+        userMarker: null,
+        pathPolyline: null,
+        riskLevel: "LOW",
+      };
+
+      // --- 3. MOCK DATA CONFIG ---
+      // Generating zones dynamically around a central point later
+      const ZONE_CONFIG = {
+        radius: 150, // meters
+        capacity: 50,
+      };
+
+      // --- 4. THREE.JS BACKGROUND ---
+      function initThreeJS() {
+        const container = document.getElementById("canvas-container");
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // Particles
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 700;
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i++) {
+          posArray[i] = (Math.random() - 0.5) * 20; // Spread
+        }
+
+        particlesGeometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(posArray, 3)
+        );
+        const material = new THREE.PointsMaterial({
+          size: 0.02,
+          color: 0x00f3ff,
+          transparent: true,
+          opacity: 0.8,
+        });
+
+        const particlesMesh = new THREE.Points(particlesGeometry, material);
+        scene.add(particlesMesh);
+
+        camera.position.z = 2;
+
+        // Mouse interaction
+        let mouseX = 0;
+        let mouseY = 0;
+
+        document.addEventListener("mousemove", (event) => {
+          mouseX = event.clientX / window.innerWidth - 0.5;
+          mouseY = event.clientY / window.innerHeight - 0.5;
+        });
+
+        const animate = () => {
+          requestAnimationFrame(animate);
+          particlesMesh.rotation.y += 0.001;
+          particlesMesh.rotation.x += 0.0005;
+
+          // Subtle camera drift based on mouse
+          camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.05;
+          camera.position.y += (-mouseY * 0.5 - camera.position.y) * 0.05;
+
+          renderer.render(scene, camera);
+        };
+
+        animate();
+
+        window.addEventListener("resize", () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      }
+
+      // --- 5. MAP & CROWD LOGIC ---
+
+      function initMap() {
+        // DEMO LOCATION: User Provided
+        const startLat = 19.3858288;
+        const startLng = 72.8285586;
+
+        state.map = L.map("map", {
+          zoomControl: false,
+          attributionControl: false,
+        }).setView([startLat, startLng], 15);
+
+        // Dark Carto Tiles
+        L.tileLayer(
+          "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+          {
+            maxZoom: 19,
+            subdomains: "abcd",
+          }
+        ).addTo(state.map);
+
+        // Mock Zones (Geofences)
+        createMockZones(startLat, startLng);
+
+        // --- DEMO MODE ACTIVE ---
+        // Instead of locating real user, we place them strategically near the zones
+        const demoUserLat = startLat - 0.002;
+        const demoUserLng = startLng - 0.002;
+
+        console.log("Demo Mode: User placed at", demoUserLat, demoUserLng);
+        updateUserMarker(demoUserLat, demoUserLng);
+        notify("Demo Mode Active. Simulation Started.", "success");
+      }
+
+      function createMockZones(lat, lng) {
+        // Create 4 distinct zones around the center
+        const offsets = [
+          { lat: 0.004, lng: 0.004, name: "Market Sq" },
+          { lat: -0.004, lng: -0.003, name: "Central St" },
+          { lat: 0.005, lng: -0.005, name: "Tech Park" },
+          { lat: -0.002, lng: 0.006, name: "Metro Hub" },
+        ];
+
+        offsets.forEach((off, index) => {
+          const zLat = lat + off.lat;
+          const zLng = lng + off.lng;
+
+          const zone = {
+            id: index,
+            name: off.name,
+            lat: zLat,
+            lng: zLng,
+            radius: ZONE_CONFIG.radius,
+            capacity: ZONE_CONFIG.capacity,
+            current: Math.floor(Math.random() * 20), // Start with random people
+            circleObj: null,
+          };
+
+          // Add Circle to Map
+          zone.circleObj = L.circle([zLat, zLng], {
+            color: "cyan",
+            fillColor: "#00f3ff",
+            fillOpacity: 0.1,
+            radius: zone.radius,
+            weight: 1,
+          }).addTo(state.map);
+
+          state.zones.push(zone);
+          populateZoneWithDots(zone);
+        });
+
+        updateZoneVisuals();
+      }
+
+      function populateZoneWithDots(zone) {
+        // Remove old dots if tracked (for simplicity, we just add here in demo)
+        // Add random user dots inside the zone
+        const dotsGroup = L.layerGroup().addTo(state.map);
+        zone.dotsGroup = dotsGroup; // Store ref
+
+        for (let i = 0; i < zone.current; i++) {
+          addRandomDotToZone(zone);
+        }
+      }
+
+      function addRandomDotToZone(zone) {
+        // Random point inside circle
+        const r = (zone.radius * Math.sqrt(Math.random())) / 111300; // rough meters to deg conversion
+        const theta = Math.random() * 2 * Math.PI;
+        const dLat = r * Math.cos(theta);
+        const dLng = r * Math.sin(theta); // approximate
+
+        L.circleMarker([zone.lat + dLat, zone.lng + dLng], {
+          radius: 2,
+          fillColor: "#00f3ff",
+          color: "#00f3ff",
+          weight: 0,
+          fillOpacity: 0.6,
+          className: "user-dot-marker",
+        }).addTo(zone.dotsGroup);
+      }
+
+      function updateZoneVisuals() {
+        let totalRisk = 0;
+
+        state.zones.forEach((zone) => {
+          const density = zone.current / zone.capacity;
+          let color = "#00f3ff"; // Cyan (Safe)
+          let status = "SAFE";
+
+          if (density > 0.8) {
+            color = "#ff0055"; // Red (Critical)
+            status = "CRIT";
+            totalRisk += 3;
+          } else if (density > 0.5) {
+            color = "#ffcc00"; // Yellow (Mod)
+            status = "MOD";
+            totalRisk += 1;
+          }
+
+          zone.circleObj.setStyle({ color: color, fillColor: color });
+          zone.status = status;
+
+          // Update dots color
+          zone.dotsGroup.eachLayer((layer) => {
+            layer.setStyle({ fillColor: color, color: color });
+          });
+        });
+
+        updateAdminPanel();
+        updateGlobalRisk(totalRisk);
+      }
+
+      function onLocationFound(e) {
+        // Disabled in Demo Mode
+        // state.myLocation = e.latlng;
+        // updateUserMarker(e.latlng.lat, e.latlng.lng);
+      }
+
+      function updateUserMarker(lat, lng) {
+        if (state.userMarker) {
+          state.userMarker.setLatLng([lat, lng]);
+        } else {
+          const icon = L.divIcon({
+            className: "custom-div-icon",
+            html: "<div class='marker-pulse'></div>",
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+          });
+          state.userMarker = L.marker([lat, lng], { icon: icon }).addTo(
+            state.map
+          );
+          state.myLocation = L.latLng(lat, lng);
+        }
+        state.map.setView([lat, lng], 15);
+      }
+
+      // --- 6. ROUTING ALGORITHM (REAL ROADS via OSRM) ---
+
+      function findSafePath() {
+        if (!state.myLocation) {
+          notify("Acquiring GPS...", "warning");
+          return;
+        }
+
+        notify("Select a destination on the map.", "info");
+
+        // One-time click listener
+        state.map.once("click", (e) => {
+          drawRealSafePath(state.myLocation, e.latlng);
+        });
+      }
+
+      async function drawRealSafePath(start, end) {
+        // Remove existing path
+        if (state.pathPolyline) state.map.removeLayer(state.pathPolyline);
+
+        notify("Connecting to Routing Satellites...", "info");
+
+        try {
+          // 1. Try standard route
+          let routeGeoJSON = await fetchOSRMRoute(start, end);
+
+          // 2. Check for intersections with crowded zones
+          const dangerousZone = findDangerousIntersection(
+            routeGeoJSON.coordinates
+          );
+
+          if (dangerousZone) {
+            notify(
+              `⚠️ Route passes through ${dangerousZone.name} (Crowded). Rerouting...`,
+              "warning"
+            );
+
+            // 3. Calculate Detour
+            const detourPoint = calculateDetourPoint(start, end, dangerousZone);
+
+            // 4. Fetch new route with waypoint
+            routeGeoJSON = await fetchOSRMRoute(start, end, detourPoint);
+            notify("Safe Path Found (Via Detour).", "success");
+          } else {
+            notify("Standard Route is Safe.", "success");
+          }
+
+          // 5. Draw
+          // OSRM returns [lon, lat], Leaflet needs [lat, lon]
+          const latLngs = routeGeoJSON.coordinates.map((coord) => [
+            coord[1],
+            coord[0],
+          ]);
+
+          state.pathPolyline = L.polyline(latLngs, {
+            color: "#00ff99",
+            weight: 6,
+            opacity: 0.9,
+            lineJoin: "round",
+          }).addTo(state.map);
+
+          state.map.fitBounds(state.pathPolyline.getBounds(), {
+            padding: [50, 50],
+          });
+        } catch (error) {
+          console.error(error);
+          notify("Routing Grid Offline. Using City Backup.", "warning");
+          // Fallback to simple line if API fails
+          drawBackupPath(start, end);
+        }
+      }
+
+      async function fetchOSRMRoute(start, end, via = null) {
+        // OSRM Public API (Demo Server)
+        // Format: {lon},{lat};{lon},{lat}
+        let url = `https://router.project-osrm.org/route/v1/foot/${start.lng},${start.lat}`;
+        if (via) {
+          url += `;${via.lng},${via.lat}`;
+        }
+        url += `;${end.lng},${end.lat}?overview=full&geometries=geojson`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.code !== "Ok") throw new Error("OSRM Error");
+
+        return data.routes[0].geometry; // GeoJSON { type: 'LineString', coordinates: [[lon,lat],...] }
+      }
+
+      function findDangerousIntersection(coordinates) {
+        // Iterate through route segments
+        for (let i = 0; i < coordinates.length - 1; i++) {
+          const p1 = { lat: coordinates[i][1], lng: coordinates[i][0] };
+          const p2 = { lat: coordinates[i + 1][1], lng: coordinates[i + 1][0] };
+
+          for (let z of state.zones) {
+            // Avoid Red (CRIT) and Yellow (MOD) zones
+            if (z.status === "CRIT" || z.status === "MOD") {
+              if (segmentIntersectsCircle(p1, p2, z)) {
+                return z;
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      function calculateDetourPoint(start, end, zone) {
+        // Find a point offset from the zone to force the routing engine around it.
+        // Simplified strategy: Move 300m North-East or South-West depending on direction.
+        // Ideally this would be perpendicular to the Start-End vector.
+
+        const offset = 0.003; // ~300m
+
+        // Simple heuristic detour
+        return L.latLng(zone.lat + offset, zone.lng + offset);
+      }
+
+      // Fallback grid router (Manhattan distance) from previous version
+      function drawBackupPath(start, end) {
+        const cornerA = L.latLng(start.lat, end.lng);
+        const path = [start, cornerA, end];
+
+        state.pathPolyline = L.polyline(path, {
+          color: "#00ff99",
+          weight: 5,
+          opacity: 0.8,
+          dashArray: "10, 10",
+        }).addTo(state.map);
+        state.map.fitBounds(state.pathPolyline.getBounds(), {
+          padding: [50, 50],
+        });
+      }
+
+      // Helper: Check if line segment intersects circle
+      function segmentIntersectsCircle(p1, p2, zone) {
+        const dist = getDistanceFromLine(
+          zone.lat,
+          zone.lng,
+          p1.lat,
+          p1.lng,
+          p2.lat,
+          p2.lng
+        );
+        // Radius in degrees approx. Add 10% buffer
+        const radiusInDeg = (zone.radius / 111300) * 1.1;
+        return dist < radiusInDeg;
+      }
+
+      // Math helper: distance from point (p) to line segment (v-w)
+      function getDistanceFromLine(pLat, pLng, vLat, vLng, wLat, wLng) {
+        const L2 = (wLat - vLat) ** 2 + (wLng - vLng) ** 2;
+        if (L2 == 0) return Math.sqrt((pLat - vLat) ** 2 + (pLng - vLng) ** 2);
+        let t =
+          ((pLat - vLat) * (wLat - vLat) + (pLng - vLng) * (wLng - vLng)) / L2;
+        t = Math.max(0, Math.min(1, t));
+        const dist = Math.sqrt(
+          (pLat - (vLat + t * (wLat - vLat))) ** 2 +
+            (pLng - (vLng + t * (wLng - vLng))) ** 2
+        );
+        return dist;
+      }
+
+      // --- 7. ADMIN & SYSTEM LOGIC ---
+
+      function toggleAdmin() {
+        if (state.isAdmin) {
+          const p = document.getElementById("admin-panel");
+          p.style.display = p.style.display === "block" ? "none" : "block";
+        } else {
+          const modal = document.getElementById("login-modal");
+          modal.style.display = "flex";
+          gsap.to(modal, { opacity: 1, scale: 1, duration: 0.3 });
+        }
+      }
+
+      function closeLogin() {
+        const modal = document.getElementById("login-modal");
+        gsap.to(modal, {
+          opacity: 0,
+          scale: 0.9,
+          duration: 0.2,
+          onComplete: () => (modal.style.display = "none"),
+        });
+      }
+
+      function adminLogin() {
+        const u = document.getElementById("admin-user").value;
+        const p = document.getElementById("admin-pass").value;
+        if (u === "admin" && p === "1223334444") {
+          state.isAdmin = true;
+          notify("Admin Access Granted.", "success");
+          closeLogin();
+          document.getElementById("admin-panel").style.display = "block";
+          updateAdminPanel();
+        } else {
+          notify("Access Denied.", "warning");
+        }
+      }
+
+      function updateAdminPanel() {
+        const list = document.getElementById("zone-list");
+        list.innerHTML = "";
+        state.zones.forEach((z) => {
+          const div = document.createElement("div");
+          div.className = "zone-stat";
+          let color =
+            z.status === "SAFE"
+              ? "#00ff99"
+              : z.status === "MOD"
+              ? "#ffcc00"
+              : "#ff0055";
+          div.innerHTML = `
+                    <span style="color:${color}">${z.name}</span>
+                    <span>${z.current}/${z.capacity} (${Math.round(
+            (z.current / z.capacity) * 100
+          )}%)</span>
+                `;
+          list.appendChild(div);
+        });
+      }
+
+      function simulateSurge() {
+        // Fill a random zone
+        const z = state.zones[Math.floor(Math.random() * state.zones.length)];
+        z.current = z.capacity + 10; // Overfill
+
+        // Add dots visually
+        for (let i = 0; i < 20; i++) addRandomDotToZone(z);
+
+        updateZoneVisuals();
+        notify(`SURGE DETECTED in ${z.name}!`, "warning");
+
+        // Trigger auto-reroute if path exists
+        if (state.pathPolyline) {
+          notify("Recalculating Safe Path...", "info");
+          setTimeout(() => {
+            const latlngs = state.pathPolyline.getLatLngs();
+            // OSRM needs start and end points specifically, extracting from Leaflet polyline
+            const pts = state.pathPolyline.getLatLngs();
+            const start = pts[0];
+            const end = pts[pts.length - 1];
+            drawRealSafePath(start, end);
+          }, 1500);
+        }
+      }
+
+      // --- 8. UTILS & UI ---
+
+      function updateTime() {
+        const now = new Date();
+        document.getElementById("clock-display").innerText =
+          now.toLocaleTimeString();
+
+        // Simulate live user count fluctuation
+        let count = 0;
+        state.zones.forEach((z) => (count += z.current));
+        document.getElementById("user-count").innerText =
+          count + Math.floor(Math.random() * 5);
+      }
+
+      function updateGlobalRisk(score) {
+        const bar = document.getElementById("risk-bar");
+        let width = "20%";
+        let color = "var(--neon-cyan)";
+
+        if (score > 5) {
+          width = "90%";
+          color = "var(--neon-red)";
+        } else if (score > 2) {
+          width = "60%";
+          color = "var(--neon-yellow)";
+        }
+
+        bar.style.width = width;
+        bar.style.background = color;
+      }
+
+      function notify(msg, type = "info") {
+        const area = document.getElementById("notification-area");
+        const el = document.createElement("div");
+        el.className = `toast ${type}`;
+
+        let icon = "info";
+        if (type === "warning") icon = "alert-triangle";
+        if (type === "success") icon = "check-circle";
+
+        el.innerHTML = `<i data-lucide="${icon}"></i> <span>${msg}</span>`;
+        area.appendChild(el);
+        lucide.createIcons();
+
+        gsap.to(el, { x: 0, duration: 0.5, ease: "back.out(1.7)" });
+
+        // Auto dismiss
+        setTimeout(() => {
+          gsap.to(el, {
+            opacity: 0,
+            x: 100,
+            duration: 0.5,
+            onComplete: () => el.remove(),
+          });
+        }, 4000);
+      }
+
+      // --- 9. INITIALIZATION ---
+
+      window.onload = () => {
+        initThreeJS();
+        initMap();
+        setInterval(updateTime, 1000);
+
+        // Simulate random movement every 5s
+        setInterval(() => {
+          state.zones.forEach((z) => {
+            // Random fluctuation
+            if (Math.random() > 0.5 && z.current > 0) z.current--;
+            else if (z.current < z.capacity * 1.2) z.current++;
+          });
+          updateZoneVisuals();
+        }, 5000);
+
+        // Intro Animation
+        gsap.from(".hud-panel", {
+          y: -50,
+          opacity: 0,
+          stagger: 0.2,
+          duration: 1,
+        });
+        gsap.from(".controls-bottom", {
+          y: 100,
+          opacity: 0,
+          duration: 1,
+          delay: 0.5,
+        });
+
+        notify("System Online. Connecting to satellites...", "info");
+      };
+    </script>
+  </body>
+</html>
