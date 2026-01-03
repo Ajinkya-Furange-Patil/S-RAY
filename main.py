@@ -16,7 +16,7 @@ from ultralytics import YOLO
 # =============================
 # APP INITIALIZATION
 # =============================
-app = FastAPI(title="Real-Time People Tracking System")
+app = FastAPI(title="Real-Time People Tracking + Heatmap")
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,10 +25,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load YOLO model once at startup
-# For BEST detection and still OK speed on decent GPU/CPU, use 'yolov8m.pt'
+# For best detection, you can change to yolov8m.pt if your GPU/CPU is strong.
 # model = YOLO("yolov8m.pt")
-model = YOLO("yolov8n.pt")  # nano: fastest, still good for person detection
+model = YOLO("yolov8n.pt")  # fast + decent accuracy
 
 
 # =============================
@@ -44,14 +43,10 @@ class Person:
 
 
 # =============================
-# TRACKER (Centroid-based)
+# TRACKER
 # =============================
 class PeopleTracker:
     def __init__(self, max_distance: float = 60.0, timeout: float = 1.0):
-        """
-        max_distance: max centroid distance (pixels) to associate detections
-        timeout: seconds after which a lost person is removed
-        """
         self.people: Dict[str, Person] = {}
         self.max_distance = max_distance
         self.timeout = timeout
@@ -61,9 +56,6 @@ class PeopleTracker:
         return int((x1 + x2) / 2), int((y1 + y2) / 2)
 
     def update(self, detections: List[Tuple[int, int, int, int, float]]) -> Dict[str, Person]:
-        """
-        detections: list of (x1, y1, x2, y2, conf)
-        """
         now = time.time()
 
         if not detections:
@@ -74,7 +66,6 @@ class PeopleTracker:
         det_centroids = [self._centroid(b) for b in det_boxes]
         det_conf = [d[4] for d in detections]
 
-        # If no existing people, register all detections
         if not self.people:
             for box, cen, conf in zip(det_boxes, det_centroids, det_conf):
                 self._register(box, cen, conf, now)
@@ -83,13 +74,11 @@ class PeopleTracker:
         existing_ids = list(self.people.keys())
         existing_centroids = [self.people[i].centroid for i in existing_ids]
 
-        # Shape: [num_existing, num_detections]
         distances = cdist(existing_centroids, det_centroids)
 
         matched_det = set()
         matched_people = set()
 
-        # Greedy association by nearest centroid
         while distances.size > 0:
             i, j = np.unravel_index(np.argmin(distances), distances.shape)
             if distances[i, j] > self.max_distance:
@@ -106,12 +95,10 @@ class PeopleTracker:
             distances[i, :] = np.inf
             distances[:, j] = np.inf
 
-        # Register unmatched detections as new people
         for j in range(len(det_boxes)):
             if j not in matched_det:
                 self._register(det_boxes[j], det_centroids[j], det_conf[j], now)
 
-        # Cleanup lost people
         self._cleanup(now)
         return self.people
 
@@ -120,8 +107,8 @@ class PeopleTracker:
         self.people[pid] = Person(pid, box, cen, conf, now)
 
     def _cleanup(self, now):
-        to_remove = [pid for pid, p in self.people.items() if now - p.last_seen > self.timeout]
-        for pid in to_remove:
+        remove = [pid for pid, p in self.people.items() if now - p.last_seen > self.timeout]
+        for pid in remove:
             del self.people[pid]
 
     def count(self) -> int:
@@ -132,7 +119,63 @@ tracker = PeopleTracker(max_distance=70, timeout=1.2)
 
 
 # =============================
-# WEBSOCKET ENDPOINT
+# HEATMAP STATE
+# =============================
+# These will be initialized when first frame size is known
+heatmap_accumulator = None  # float32 array same size as frame, accumulates counts
+heatmap_decay = 0.98        # < 1.0 for slow fading over time
+heatmap_scale_per_hit = 1.0 # how much to add for each person per frame
+
+
+def update_heatmap(frame: np.ndarray, people: Dict[str, Person]) -> np.ndarray:
+    """
+    Update global heatmap_accumulator based on current detected people.
+    Returns a color heatmap image aligned with frame.
+    """
+    global heatmap_accumulator
+
+    h, w = frame.shape[:2]
+
+    if heatmap_accumulator is None or heatmap_accumulator.shape[:2] != (h, w):
+        heatmap_accumulator = np.zeros((h, w), dtype=np.float32)
+
+    # Decay old heat so the map slowly fades if area is empty
+    heatmap_accumulator *= heatmap_decay
+
+    # Add heat where people are detected: use bounding boxes
+    for p in people.values():
+        x1, y1, x2, y2 = p.bbox
+        x1 = max(0, min(w - 1, x1))
+        x2 = max(0, min(w - 1, x2))
+        y1 = max(0, min(h - 1, y1))
+        y2 = max(0, min(h - 1, y2))
+        if x2 > x1 and y2 > y1:
+            # add heat inside the box
+            heatmap_accumulator[y1:y2, x1:x2] += heatmap_scale_per_hit
+
+    # Normalize heatmap to 0-255 for visualization
+    hm_norm = heatmap_accumulator.copy()
+    if hm_norm.max() > 0:
+        hm_norm = hm_norm / hm_norm.max()
+    hm_norm = (hm_norm * 255).astype(np.uint8)
+
+    # Apply color map (e.g. JET gives blue->red heatmap)
+    heatmap_color = cv2.applyColorMap(hm_norm, cv2.COLORMAP_JET)
+
+    return heatmap_color
+
+
+def overlay_heatmap(frame: np.ndarray, heatmap_color: np.ndarray, alpha: float = 0.5) -> np.ndarray:
+    """
+    Overlay colored heatmap on top of the original frame.
+    alpha: transparency of heatmap (0=off, 1=full heatmap).
+    """
+    overlay = cv2.addWeighted(frame, 1 - alpha, heatmap_color, alpha, 0)
+    return overlay
+
+
+# =============================
+# WEBSOCKET
 # =============================
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
@@ -141,7 +184,6 @@ async def websocket_endpoint(ws: WebSocket):
 
     try:
         while True:
-            # Receive frame from client
             data = await ws.receive_json()
             frame_b64 = data.get("frame")
             if frame_b64 is None:
@@ -153,13 +195,8 @@ async def websocket_endpoint(ws: WebSocket):
             if frame is None:
                 continue
 
-            # YOLO inference: only 'person' class (0)
-            results = model(
-                frame,
-                classes=[0],     # person only
-                conf=0.5,        # min confidence for detection
-                verbose=False
-            )
+            # YOLO inference: persons only
+            results = model(frame, classes=[0], conf=0.5, verbose=False)
 
             detections = []
             for r in results:
@@ -172,12 +209,12 @@ async def websocket_endpoint(ws: WebSocket):
 
             tracked = tracker.update(detections)
 
-            # FPS calculation
+            # FPS
             now = time.time()
             fps = 1.0 / max(now - last_time, 1e-6)
             last_time = now
 
-            # Draw boxes + UUID on server-side frame (optional; not used on front-end here)
+            # Draw bounding boxes + IDs on frame
             for p in tracked.values():
                 x1, y1, x2, y2 = p.bbox
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -191,28 +228,35 @@ async def websocket_endpoint(ws: WebSocket):
                     2,
                 )
 
-            # Optionally, you can send back the processed frame to overlay in browser
-            _, buffer = cv2.imencode(".jpg", frame)
-            frame_b64_out = base64.b64encode(buffer).decode()
+            # ==== HEATMAP UPDATE & OVERLAY ====
+            heatmap_color = update_heatmap(frame, tracked)
+            frame_with_heat = overlay_heatmap(frame, heatmap_color, alpha=0.5)
+
+            # Encode both plain frame and heatmap overlay (you can use either on frontend)
+            _, buf_plain = cv2.imencode(".jpg", frame)
+            _, buf_heat = cv2.imencode(".jpg", frame_with_heat)
+
+            frame_b64_plain = base64.b64encode(buf_plain).decode()
+            frame_b64_heat = base64.b64encode(buf_heat).decode()
 
             await ws.send_json(
                 {
                     "count": tracker.count(),
                     "fps": round(fps, 1),
                     "people": [asdict(p) for p in tracked.values()],
-                    "frame": frame_b64_out,
+                    "frame": frame_b64_plain,        # original with boxes
+                    "heat_frame": frame_b64_heat,    # frame + heatmap
                 }
             )
+
     except WebSocketDisconnect:
-        # client disconnected
         pass
     except Exception as e:
-        # avoid crash on unexpected errors
         print("WebSocket error:", e)
 
 
 # =============================
-# FRONTEND ROUTE
+# FRONTEND
 # =============================
 @app.get("/")
 async def home():
@@ -221,9 +265,6 @@ async def home():
     return HTMLResponse(html)
 
 
-# =============================
-# RUN SERVER
-# =============================
 if __name__ == "__main__":
     import uvicorn
 

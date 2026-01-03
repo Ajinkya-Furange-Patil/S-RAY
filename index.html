@@ -152,7 +152,7 @@
     <div id="canvas-container"></div>
 
     <!-- Hidden canvas used to capture webcam frames -->
-    <canvas id="captureCanvas" style="display: none;"></canvas>
+    <canvas id="captureCanvas" style="display: none"></canvas>
 
     <!-- Main Dashboard Grid -->
     <div class="flex-1 grid grid-cols-12 gap-4 h-full relative z-10">
@@ -256,6 +256,11 @@
               class="w-full h-full object-cover opacity-80"
             ></video>
 
+            <!-- Heatmap overlay image -->
+            <img
+              id="heatmap-view"
+              class="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            />
             <!-- Fallback if camera denied/fails -->
             <div
               id="camera-placeholder"
@@ -567,6 +572,14 @@
           window.lucide.createIcons();
         }
       });
+
+      // NEW: show heatmap overlay coming from server
+      if (data.heat_frame) {
+        const imgHeat = document.getElementById("heatmap-view");
+        if (imgHeat) {
+          imgHeat.src = "data:image/jpeg;base64," + data.heat_frame;
+        }
+      }
     </script>
   </body>
 </html>
