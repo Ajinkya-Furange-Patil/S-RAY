@@ -2,15 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>S-RAY Surveillance v7.0 - Integrated System</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>S-RAY Surveillance v7.0 - Responsive Integrated System</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <link
@@ -18,7 +18,6 @@
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -27,11 +26,20 @@
 
       body {
         margin: 0;
-        overflow: hidden;
         background-color: #050510;
         font-family: "Rajdhani", sans-serif;
         color: white;
         transition: box-shadow 0.3s ease;
+        /* Mobile: Scrollable, Desktop: Fixed */
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      /* Desktop Lock */
+      @media (min-width: 1024px) {
+        body {
+          overflow: hidden;
+        }
       }
 
       /* --- UTILITY CLASSES --- */
@@ -44,11 +52,11 @@
 
       /* CRITICAL ALERT ATMOSPHERE */
       body.critical-mode {
-        box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.3);
+        box-shadow: inset 0 0 50px rgba(255, 0, 0, 0.3);
       }
       body.critical-mode::after {
         content: "";
-        position: absolute;
+        position: fixed;
         inset: 0;
         background: linear-gradient(
           180deg,
@@ -72,7 +80,7 @@
       }
 
       #canvas-container {
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         width: 100%;
@@ -137,6 +145,7 @@
         height: 100%;
         background: #0f172a; /* Fallback */
         z-index: 1;
+        min-height: 300px; /* Ensure height on mobile */
       }
 
       /* Custom Leaflet Dark Mode tweaks */
@@ -269,72 +278,70 @@
           opacity: 1;
         }
       }
-
-      @media (max-width: 1024px) {
-        .main-grid {
-          grid-template-columns: 1fr;
-          overflow-y: auto;
-        }
-        .col-span-3,
-        .col-span-6 {
-          grid-column: span 1;
-        }
-        body {
-          overflow: auto;
-        }
-      }
     </style>
   </head>
-  <body class="h-screen w-screen flex flex-col p-4 gap-4 box-border">
+  <!-- Responsive Body Classes -->
+  <body class="min-h-screen w-full flex flex-col p-2 md:p-4 gap-4 box-border">
     <div id="canvas-container"></div>
 
     <div id="chart-staging-area">
       <canvas id="pdf-chart-pie" width="400" height="400"></canvas>
     </div>
 
+    <!-- LANDING PAGE -->
     <div
       id="landing-page"
-      class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md"
+      class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md p-4"
     >
       <div
-        class="glass-panel p-10 rounded-xl text-center max-w-2xl w-full border-t-4 border-t-cyan-500"
+        class="glass-panel p-6 md:p-10 rounded-xl text-center max-w-2xl w-full border-t-4 border-t-cyan-500 overflow-y-auto max-h-[90vh]"
       >
         <i
           data-lucide="scan-eye"
-          class="w-20 h-20 text-cyan-400 mx-auto mb-6 animate-pulse"
+          class="w-16 h-16 md:w-20 md:h-20 text-cyan-400 mx-auto mb-6 animate-pulse"
         ></i>
-        <h1 class="text-5xl font-orbitron text-white font-bold mb-2">S-RAY</h1>
-        <p class="text-cyan-400/80 tracking-widest mb-10 text-sm">
+        <h1
+          class="text-3xl md:text-5xl font-orbitron text-white font-bold mb-2"
+        >
+          S-RAY
+        </h1>
+        <p
+          class="text-cyan-400/80 tracking-widest mb-8 md:mb-10 text-xs md:text-sm"
+        >
           SURVEILLANCE & GEO-SPATIAL INTELLIGENCE
         </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <button
             onclick="startSensorMode()"
-            class="group relative p-6 border border-gray-600 hover:border-cyan-400 rounded transition-all bg-black/40 hover:bg-cyan-900/20 text-left"
+            class="group relative p-4 md:p-6 border border-gray-600 hover:border-cyan-400 rounded transition-all bg-black/40 hover:bg-cyan-900/20 text-left"
           >
             <div
               class="absolute top-2 right-2 text-cyan-500 opacity-0 group-hover:opacity-100 transition"
             >
               <i data-lucide="arrow-right"></i>
             </div>
-            <h3 class="font-bold text-xl text-white mb-2">UPLINK NODE</h3>
-            <p class="text-xs text-gray-400">
+            <h3 class="font-bold text-lg md:text-xl text-white mb-2">
+              UPLINK NODE
+            </h3>
+            <p class="text-[10px] md:text-xs text-gray-400">
               Connect this device as a data collection sensor.
             </p>
           </button>
 
           <button
             onclick="showLogin()"
-            class="group relative p-6 border border-gray-600 hover:border-red-400 rounded transition-all bg-black/40 hover:bg-red-900/20 text-left"
+            class="group relative p-4 md:p-6 border border-gray-600 hover:border-red-400 rounded transition-all bg-black/40 hover:bg-red-900/20 text-left"
           >
             <div
               class="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition"
             >
               <i data-lucide="lock"></i>
             </div>
-            <h3 class="font-bold text-xl text-white mb-2">COMMAND CENTER</h3>
-            <p class="text-xs text-gray-400">
+            <h3 class="font-bold text-lg md:text-xl text-white mb-2">
+              COMMAND CENTER
+            </h3>
+            <p class="text-[10px] md:text-xs text-gray-400">
               Admin access. Requires Level 5 Security Clearance.
             </p>
           </button>
@@ -342,11 +349,12 @@
       </div>
     </div>
 
+    <!-- LOGIN MODAL -->
     <div
       id="login-view"
-      class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90"
+      class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4"
     >
-      <div class="glass-panel p-8 rounded-lg w-full max-w-md relative">
+      <div class="glass-panel p-6 md:p-8 rounded-lg w-full max-w-md relative">
         <button
           onclick="cancelLogin()"
           class="absolute top-4 right-4 text-gray-500 hover:text-white"
@@ -354,7 +362,9 @@
           <i data-lucide="x"></i>
         </button>
 
-        <h2 class="text-2xl font-orbitron text-cyan-400 mb-6 text-center">
+        <h2
+          class="text-xl md:text-2xl font-orbitron text-cyan-400 mb-6 text-center"
+        >
           IDENTITY VERIFICATION
         </h2>
 
@@ -399,9 +409,10 @@
       </div>
     </div>
 
+    <!-- SENSOR VIEW (MOBILE FOCUSED) -->
     <div
       id="sensor-view"
-      class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-black"
+      class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black"
     >
       <div
         class="glass-panel p-8 rounded-full w-64 h-64 flex flex-col items-center justify-center border-4 border-cyan-500 relative animate-pulse"
@@ -428,11 +439,14 @@
       </div>
     </div>
 
+    <!-- SETUP MODAL -->
     <div
       id="setupModal"
-      class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm items-center justify-center"
+      class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm items-center justify-center p-4"
     >
-      <div class="glass-panel w-full max-w-lg p-6 rounded-lg relative">
+      <div
+        class="glass-panel w-full max-w-lg p-6 rounded-lg relative overflow-y-auto max-h-[90vh]"
+      >
         <button
           onclick="closeSetupModal()"
           class="absolute top-4 right-4 text-gray-400 hover:text-white"
@@ -455,7 +469,7 @@
               placeholder="e.g. North Gate A"
             />
           </div>
-          <div>
+          <div class="col-span-2 md:col-span-1">
             <label class="text-xs text-cyan-500">LATITUDE</label>
             <input
               type="text"
@@ -464,7 +478,7 @@
               placeholder="0.0000"
             />
           </div>
-          <div>
+          <div class="col-span-2 md:col-span-1">
             <label class="text-xs text-cyan-500">LONGITUDE</label>
             <input
               type="text"
@@ -473,7 +487,7 @@
               placeholder="0.0000"
             />
           </div>
-          <div>
+          <div class="col-span-2 md:col-span-1">
             <label class="text-xs text-cyan-500">RADIUS (M)</label>
             <input
               type="number"
@@ -482,7 +496,7 @@
               value="50"
             />
           </div>
-          <div>
+          <div class="col-span-2 md:col-span-1">
             <label class="text-xs text-cyan-500">DENSITY LIMIT</label>
             <input
               type="number"
@@ -510,16 +524,17 @@
       </div>
     </div>
 
+    <!-- ALERT BOX -->
     <div
       id="critical-alert-box"
-      class="hidden fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-red-950/90 border-2 border-red-500 text-white px-8 py-4 rounded-lg shadow-[0_0_50px_rgba(255,0,0,0.6)] items-center gap-4 animate-[slideDown_0.5s_ease-out]"
+      class="hidden fixed top-4 md:top-8 left-1/2 -translate-x-1/2 z-50 bg-red-950/90 border-2 border-red-500 text-white px-6 py-4 rounded-lg shadow-[0_0_50px_rgba(255,0,0,0.6)] items-center gap-4 animate-[slideDown_0.5s_ease-out] w-[90%] md:w-auto"
     >
-      <div class="bg-red-500 p-2 rounded-full animate-pulse">
-        <i data-lucide="siren" class="w-8 h-8 text-white"></i>
+      <div class="bg-red-500 p-2 rounded-full animate-pulse shrink-0">
+        <i data-lucide="siren" class="w-6 h-6 md:w-8 md:h-8 text-white"></i>
       </div>
       <div>
         <h2
-          class="font-orbitron font-bold text-xl tracking-widest text-red-100"
+          class="font-orbitron font-bold text-lg md:text-xl tracking-widest text-red-100"
         >
           CRITICAL CONGESTION DETECTED
         </h2>
@@ -529,29 +544,41 @@
       </div>
     </div>
 
+    <!-- MAIN DASHBOARD -->
+    <!-- Responsive Grid: Stacks on mobile (grid-cols-1), 12 cols on desktop -->
     <div
       id="dashboard-view"
-      class="hidden h-full flex-col relative z-10 w-full"
+      class="hidden w-full flex-col relative z-10 lg:h-full lg:overflow-hidden"
     >
-      <div class="main-grid flex-1 grid grid-cols-12 gap-4 h-full relative">
-        <div class="col-span-3 flex flex-col gap-4 min-h-[300px]">
+      <div
+        class="main-grid flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 h-auto lg:h-full relative pb-10 lg:pb-0"
+      >
+        <!-- LEFT PANEL -->
+        <div
+          class="col-span-1 lg:col-span-3 flex flex-col gap-4 order-2 lg:order-1"
+        >
           <div
-            class="glass-panel h-24 rounded-lg flex items-center justify-center tech-border relative overflow-hidden group shrink-0"
+            class="glass-panel h-20 md:h-24 rounded-lg flex items-center justify-center tech-border relative overflow-hidden group shrink-0"
           >
             <div
               class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
             ></div>
             <div class="flex items-center gap-2">
-              <i data-lucide="globe" class="text-cyan-400 w-8 h-8"></i>
-              <span class="tech-text font-bold text-xl text-white">S-RAY</span>
+              <i
+                data-lucide="globe"
+                class="text-cyan-400 w-6 h-6 md:w-8 md:h-8"
+              ></i>
+              <span class="tech-text font-bold text-lg md:text-xl text-white"
+                >S-RAY</span
+              >
             </div>
           </div>
 
           <div
-            class="glass-panel flex-1 rounded-lg p-6 flex flex-col items-center relative overflow-hidden"
+            class="glass-panel flex-1 rounded-lg p-4 md:p-6 flex flex-col items-center relative overflow-hidden min-h-[300px]"
           >
             <div
-              class="w-24 h-24 rounded-full border-2 border-cyan-400 p-1 mb-4 relative"
+              class="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-cyan-400 p-1 mb-4 relative"
             >
               <img
                 src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"
@@ -563,12 +590,14 @@
               ></div>
             </div>
 
-            <h2 class="text-2xl font-bold tech-text text-white">COMMANDER</h2>
-            <p class="text-cyan-400/70 text-sm tracking-wider mb-6">
+            <h2 class="text-xl md:text-2xl font-bold tech-text text-white">
+              COMMANDER
+            </h2>
+            <p class="text-cyan-400/70 text-xs md:text-sm tracking-wider mb-6">
               CLEARANCE: LEVEL 5
             </p>
 
-            <div class="w-full space-y-4">
+            <div class="w-full space-y-4 text-sm">
               <div
                 class="flex justify-between items-center border-b border-white/10 pb-2"
               >
@@ -605,7 +634,7 @@
               </button>
               <button
                 onclick="generatePDFReport()"
-                class="w-full bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500 text-cyan-300 p-3 rounded flex items-center justify-center gap-2 transition-all"
+                class="w-full bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500 text-cyan-300 p-3 rounded flex items-center justify-center gap-2 transition-all text-sm"
               >
                 <i data-lucide="file-down" class="w-4 h-4"></i>
                 MISSION REPORT
@@ -614,8 +643,13 @@
           </div>
         </div>
 
-        <div class="col-span-6 flex flex-col min-h-[400px]">
-          <div class="glass-panel flex-1 rounded-lg p-1 relative flex flex-col">
+        <!-- CENTER MAP PANEL -->
+        <div
+          class="col-span-1 lg:col-span-6 flex flex-col order-1 lg:order-2 h-[500px] lg:h-auto"
+        >
+          <div
+            class="glass-panel flex-1 rounded-lg p-1 relative flex flex-col h-full"
+          >
             <div
               class="h-10 flex justify-between items-center px-4 bg-black/20 rounded-t mb-1 shrink-0"
             >
@@ -623,8 +657,8 @@
                 <div class="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
                 <span
                   id="sector-label"
-                  class="text-red-500 font-bold tracking-widest text-xs"
-                  >LIVE DRONE FEED // SECTOR 9 - NEW DELHI</span
+                  class="text-red-500 font-bold tracking-widest text-[10px] md:text-xs"
+                  >LIVE FEED // SECTOR 9</span
                 >
               </div>
               <div class="text-xs text-cyan-400 font-mono" id="clock">
@@ -640,13 +674,13 @@
 
               <div
                 id="camera-placeholder"
-                class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-30"
+                class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-30 p-4 text-center"
               >
                 <i
                   data-lucide="satellite"
-                  class="w-16 h-16 text-cyan-500 mb-4 animate-pulse"
+                  class="w-12 h-12 md:w-16 md:h-16 text-cyan-500 mb-4 animate-pulse"
                 ></i>
-                <h3 class="text-xl text-white font-bold mb-2">
+                <h3 class="text-lg md:text-xl text-white font-bold mb-2">
                   SATELLITE UPLINK
                 </h3>
                 <p class="text-gray-500 mb-6 text-sm">
@@ -656,7 +690,7 @@
                 <button
                   onclick="initSystem()"
                   id="init-btn"
-                  class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold transition-all border border-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.5)]"
+                  class="px-6 py-2 md:px-8 md:py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold transition-all border border-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.5)] text-sm md:text-base"
                 >
                   ESTABLISH LINK
                 </button>
@@ -683,7 +717,7 @@
                 </div>
 
                 <div
-                  class="absolute bottom-4 right-4 w-12 h-12 border border-cyan-500/30 rounded-full flex items-center justify-center bg-black/40"
+                  class="absolute bottom-4 right-4 w-10 h-10 md:w-12 md:h-12 border border-cyan-500/30 rounded-full flex items-center justify-center bg-black/40"
                 >
                   <span class="text-xs text-cyan-400 font-bold">N</span>
                 </div>
@@ -722,10 +756,13 @@
           </div>
         </div>
 
-        <div class="col-span-3 flex flex-col gap-4 min-h-[300px]">
-          <div class="glass-panel flex-1 rounded-lg p-6 flex flex-col">
+        <!-- RIGHT STATS PANEL -->
+        <div
+          class="col-span-1 lg:col-span-3 flex flex-col gap-4 order-3 min-h-[300px]"
+        >
+          <div class="glass-panel flex-1 rounded-lg p-4 md:p-6 flex flex-col">
             <h3
-              class="text-xl tech-text text-cyan-400 mb-6 border-b border-cyan-500/30 pb-2"
+              class="text-lg md:text-xl tech-text text-cyan-400 mb-6 border-b border-cyan-500/30 pb-2"
             >
               TARGET ANALYSIS
             </h3>
@@ -742,7 +779,7 @@
                 <div class="flex items-end gap-2">
                   <span
                     id="total-count"
-                    class="text-6xl font-bold stat-value text-white"
+                    class="text-5xl md:text-6xl font-bold stat-value text-white"
                     >0</span
                   >
                   <span class="text-xs text-blue-400 mb-2 font-mono"
@@ -992,7 +1029,7 @@
         dashboard.style.display = "flex";
 
         // Needed for Leaflet to size correctly after being hidden
-        setTimeout(initMap, 100);
+        setTimeout(initMap, 200);
 
         // Wait for manual init or auto init
         // fetchDashboardData();
@@ -1146,6 +1183,11 @@
             e.latlng.lat.toFixed(4);
           document.getElementById("lng-display").innerText =
             e.latlng.lng.toFixed(4);
+        });
+
+        // Ensure map resizes correctly on window resize
+        window.addEventListener("resize", () => {
+          map.invalidateSize();
         });
       }
 
