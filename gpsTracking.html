@@ -1377,186 +1377,32 @@
         document.body.classList.toggle("critical-mode");
         alert("SECTOR LOCKDOWN PROTOCOLS INITIATED");
       }
+
       function generatePDFReport() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // --- VISUAL IDENTITY CONFIG ---
-        const colors = {
-          bg: [5, 5, 16], // #050510 (Dark Background)
-          cyan: [0, 240, 255], // #00f0ff (Accent)
-          red: [255, 0, 0], // Alert
-          white: [255, 255, 255],
-          panel: [16, 20, 30], // Glass panel color
-          grid: [30, 40, 60], // Map Grid
-          textMuted: [150, 150, 150],
-        };
+        // Simple Report Generation
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.text("S-RAY SURVEILLANCE REPORT", 20, 20);
 
-        // 1. Background (Dark Mode)
-        doc.setFillColor(...colors.bg);
-        doc.rect(0, 0, 210, 297, "F");
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 30);
 
-        // 2. Header
-        doc.setFont("courier", "bold");
-        doc.setFontSize(24);
-        doc.setTextColor(...colors.cyan);
-        doc.text("S-RAY SURVEILLANCE", 15, 20);
-
-        doc.setFontSize(10);
-        doc.setTextColor(...colors.white);
-        doc.text("GEO-SPATIAL INTELLIGENCE REPORT", 15, 26);
-
-        // 3. Classified Stamp
-        doc.setDrawColor(...colors.red);
         doc.setLineWidth(0.5);
-        doc.rect(150, 10, 45, 12);
-        doc.setTextColor(...colors.red);
-        doc.setFontSize(8);
-        doc.text("CLASSIFIED // LEVEL 5", 152, 18);
+        doc.line(20, 35, 190, 35);
 
-        // 4. Divider Line
-        doc.setDrawColor(...colors.cyan);
-        doc.setLineWidth(0.5);
-        doc.line(15, 35, 195, 35);
+        // Data Dump
+        const total = document.getElementById("total-count").innerText;
+        const density = document.getElementById("current-density").innerText;
 
-        // 5. Metadata Grid
-        doc.setFont("courier", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(...colors.textMuted);
+        doc.text(`Total Active Entities: ${total}`, 20, 50);
+        doc.text(`Current Sector Density: ${density}`, 20, 60);
+        doc.text(`System Status: ONLINE`, 20, 70);
 
-        const dateStr = new Date().toLocaleString().toUpperCase();
-        doc.text(`TIMESTAMP : ${dateStr}`, 15, 45);
-        doc.text(`AGENT ID  : COMMANDER (ADMIN)`, 15, 50);
-        doc.text(`SECTOR    : 09 - NEW DELHI`, 15, 55);
-
-        // 6. Stats Panel (Visual Box)
-        doc.setFillColor(...colors.panel);
-        doc.setDrawColor(...colors.cyan);
-        doc.rect(15, 65, 85, 30, "FD"); // Left Box
-
-        doc.rect(110, 65, 85, 30, "FD"); // Right Box
-
-        // Data Retrieval
-        const total = document.getElementById("total-count").innerText || "0";
-        const density =
-          document.getElementById("current-density").innerText || "UNKNOWN";
-
-        // Stat 1: Entities
-        doc.setFontSize(20);
-        doc.setTextColor(...colors.white);
-        doc.text(total, 20, 80);
-        doc.setFontSize(8);
-        doc.setTextColor(...colors.cyan);
-        doc.text("ACTIVE ENTITIES", 20, 88);
-
-        // Stat 2: Density Status
-        doc.setFontSize(14);
-        // Dynamic Color for Density
-        if (density.includes("CRIT") || density.includes("High")) {
-          doc.setTextColor(...colors.red);
-        } else {
-          doc.setTextColor(...colors.cyan);
-        }
-        doc.text(density.toUpperCase(), 115, 80);
-        doc.setFontSize(8);
-        doc.setTextColor(...colors.cyan);
-        doc.text("SECTOR DENSITY", 115, 88);
-
-        // 7. GEO-FENCE MAP VISUALIZATION (Simulated Screenshot)
-        doc.setFontSize(10);
-        doc.setTextColor(...colors.white);
-        doc.text("REAL-TIME SECTOR MAP SNAPSHOT", 15, 110);
-
-        // Map Container
-        const mapX = 15;
-        const mapY = 115;
-        const mapW = 180;
-        const mapH = 90;
-
-        doc.setFillColor(10, 15, 25);
-        doc.setDrawColor(...colors.cyan);
-        doc.setLineWidth(0.2);
-        doc.rect(mapX, mapY, mapW, mapH, "FD");
-
-        // Map Grid Lines
-        doc.setDrawColor(...colors.grid);
-        for (let i = 1; i < 10; i++) {
-          // Vertical
-          doc.line(
-            mapX + i * (mapW / 10),
-            mapY,
-            mapX + i * (mapW / 10),
-            mapY + mapH
-          );
-          // Horizontal
-          doc.line(
-            mapX,
-            mapY + i * (mapH / 10),
-            mapX + mapW,
-            mapY + i * (mapH / 10)
-          );
-        }
-
-        // Draw "Geo-Fence" Polygon (Hexagon-ish shape)
-        doc.setDrawColor(...colors.cyan);
-        doc.setLineWidth(0.5);
-        const cx = mapX + mapW / 2;
-        const cy = mapY + mapH / 2;
-        doc.line(cx - 30, cy - 30, cx + 30, cy - 30);
-        doc.line(cx + 30, cy - 30, cx + 50, cy);
-        doc.line(cx + 50, cy, cx + 30, cy + 30);
-        doc.line(cx + 30, cy + 30, cx - 30, cy + 30);
-        doc.line(cx - 30, cy + 30, cx - 50, cy);
-        doc.line(cx - 50, cy, cx - 30, cy - 30);
-
-        // Add "Targets" (Random Dots) based on entity count
-        const entityCount = parseInt(total) || 5;
-        doc.setFillColor(...colors.red);
-        for (let k = 0; k < Math.min(entityCount, 20); k++) {
-          const rx = cx + (Math.random() * 80 - 40);
-          const ry = cy + (Math.random() * 60 - 30);
-          doc.circle(rx, ry, 1, "F");
-        }
-
-        // Map HUD Text
-        doc.setFontSize(6);
-        doc.setTextColor(...colors.cyan);
-        doc.text("SAT-LINK: ACTIVE", mapX + 5, mapY + 8);
-        doc.text("ZOOM: 400%", mapX + 5, mapY + mapH - 5);
-        doc.text("[ LIVE FEED ]", mapX + mapW - 25, mapY + 8);
-
-        // 8. MISSION CONTEXT (AI Generated)
-        doc.setFontSize(10);
-        doc.setTextColor(...colors.white);
-        doc.text("MISSION CONTEXT & INTELLIGENCE", 15, 220);
-        doc.setDrawColor(50, 50, 50);
-        doc.line(15, 223, 80, 223);
-
-        doc.setFont("courier", "normal");
-        doc.setFontSize(8);
-        doc.setTextColor(200, 200, 200);
-
-        const contextText = [
-          "OPERATIONAL BRIEF: Surveillance grid alpha-9 detects anomalous movement patterns consistent with unauthorized entry.",
-          "PRIMARY OBJECTIVE: Maintain geo-fence integrity. All units are authorized to engage trackers on high-density signals.",
-          "THREAT ASSESSMENT: Level 4. Several signatures indicate encrypted comms devices. S-RAY algorithms are currently decrypting signal packets.",
-          "NEXT STEPS: Continue monitoring Sector 09. Deploy drone swarms if density exceeds critical mass (95%). Report anomalies to Central Command immediately.",
-        ];
-
-        let contextY = 230;
-        contextText.forEach((line) => {
-          const splitText = doc.splitTextToSize(`>> ${line}`, 180);
-          doc.text(splitText, 15, contextY);
-          contextY += splitText.length * 4 + 2;
-        });
-
-        // 9. Footer
-        doc.setFontSize(7);
-        doc.setTextColor(80, 80, 80);
-        doc.text("S-RAY SYSTEM GENERATED REPORT // DO NOT DISTRIBUTE", 15, 280);
-        doc.text(`DOC_ID: ${Math.floor(Math.random() * 1000000)}`, 160, 280);
-
-        doc.save("S-RAY_Mission_Report.pdf");
+        doc.save("mission_report.pdf");
       }
     </script>
   </body>
