@@ -6,7 +6,8 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>S-RAY Surveillance v7.0 - Responsive Integrated System</title>
+    <title>S-RAY Surveillance v7.2 - Critical Alert System</title>
+    <link rel="icon" href="../logo.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -29,8 +30,7 @@
         background-color: #050510;
         font-family: "Rajdhani", sans-serif;
         color: white;
-        transition: box-shadow 0.3s ease;
-        /* Mobile: Scrollable, Desktop: Fixed */
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
         overflow-x: hidden;
         overflow-y: auto;
       }
@@ -49,33 +49,52 @@
       .hidden {
         display: none !important;
       }
+      .flex-center {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-      /* CRITICAL ALERT ATMOSPHERE */
+      /* CRITICAL ALERT ATMOSPHERE - ADMIN */
       body.critical-mode {
-        box-shadow: inset 0 0 50px rgba(255, 0, 0, 0.3);
+        box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.5);
       }
       body.critical-mode::after {
         content: "";
         position: fixed;
         inset: 0;
-        background: linear-gradient(
-          180deg,
-          rgba(255, 0, 0, 0.1) 0%,
-          transparent 10%,
-          transparent 90%,
-          rgba(255, 0, 0, 0.1) 100%
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(255, 0, 0, 0.1) 0px,
+          rgba(255, 0, 0, 0.1) 1px,
+          transparent 1px,
+          transparent 4px
         );
         pointer-events: none;
-        z-index: 9999;
-        animation: pulse-screen 1s infinite alternate;
+        z-index: 9998;
+        animation: pulse-screen 0.5s infinite alternate;
       }
 
       @keyframes pulse-screen {
         from {
-          opacity: 0.3;
+          opacity: 0.1;
         }
         to {
-          opacity: 0.7;
+          opacity: 0.4;
+        }
+      }
+
+      /* SENSOR ALERT OVERLAY - USER */
+      #sensor-alert-overlay {
+        animation: flash-red 0.8s infinite;
+      }
+      @keyframes flash-red {
+        0%,
+        100% {
+          background-color: rgba(220, 38, 38, 0.95);
+        }
+        50% {
+          background-color: rgba(153, 27, 27, 0.95);
         }
       }
 
@@ -98,7 +117,6 @@
         transition: border-color 0.3s ease, box-shadow 0.3s ease;
       }
 
-      /* Dynamic Border Glow */
       .glass-panel:hover {
         border-color: rgba(0, 240, 255, 0.5);
         box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.1);
@@ -143,33 +161,16 @@
       #map {
         width: 100%;
         height: 100%;
-        background: #0f172a; /* Fallback */
+        background: #0f172a;
         z-index: 1;
-        min-height: 300px; /* Ensure height on mobile */
+        min-height: 300px;
       }
 
-      /* Custom Leaflet Dark Mode tweaks */
       .leaflet-container {
         background: #000 !important;
       }
       .leaflet-control-attribution {
         display: none !important;
-      }
-
-      /* Network Lines Animation */
-      .flow-line {
-        stroke-dasharray: 5, 10;
-        animation: flow-dash 1s linear infinite;
-      }
-      .flow-line.heavy {
-        stroke-dasharray: 10, 5;
-        animation: flow-dash 0.5s linear infinite;
-      }
-
-      @keyframes flow-dash {
-        to {
-          stroke-dashoffset: -15;
-        }
       }
 
       /* Camera Scanner Effect */
@@ -257,17 +258,7 @@
         transition: all 0.3s ease;
       }
 
-      /* Hidden container for Chart.js rendering */
-      #chart-staging-area {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-        width: 600px;
-        height: 400px;
-        background: white;
-      }
-
-      /* Critical Alert Modal Animation */
+      /* Alert Modal Animation */
       @keyframes slideDown {
         from {
           transform: translate(-50%, -100%);
@@ -278,15 +269,34 @@
           opacity: 1;
         }
       }
+
+      .glitch-text {
+        position: relative;
+        animation: glitch-anim 2s infinite;
+      }
+
+      @keyframes glitch-anim {
+        0% {
+          transform: skew(0deg);
+        }
+        2% {
+          transform: skew(10deg);
+        }
+        4% {
+          transform: skew(-10deg);
+        }
+        6% {
+          transform: skew(0deg);
+        }
+        100% {
+          transform: skew(0deg);
+        }
+      }
     </style>
   </head>
-  <!-- Responsive Body Classes -->
+
   <body class="min-h-screen w-full flex flex-col p-2 md:p-4 gap-4 box-border">
     <div id="canvas-container"></div>
-
-    <div id="chart-staging-area">
-      <canvas id="pdf-chart-pie" width="400" height="400"></canvas>
-    </div>
 
     <!-- LANDING PAGE -->
     <div
@@ -303,12 +313,12 @@
         <h1
           class="text-3xl md:text-5xl font-orbitron text-white font-bold mb-2"
         >
-          S-RAY
+          S-RAY v7.2
         </h1>
         <p
           class="text-cyan-400/80 tracking-widest mb-8 md:mb-10 text-xs md:text-sm"
         >
-          SURVEILLANCE & GEO-SPATIAL INTELLIGENCE
+          CROWD DENSITY MONITORING & ALERT SYSTEM
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -325,7 +335,7 @@
               UPLINK NODE
             </h3>
             <p class="text-[10px] md:text-xs text-gray-400">
-              Connect this device as a data collection sensor.
+              User Mode: Connect as a data collection sensor.
             </p>
           </button>
 
@@ -342,7 +352,7 @@
               COMMAND CENTER
             </h3>
             <p class="text-[10px] md:text-xs text-gray-400">
-              Admin access. Requires Level 5 Security Clearance.
+              Admin Mode: Monitor grid and alerts.
             </p>
           </button>
         </div>
@@ -377,7 +387,8 @@
               type="text"
               id="username"
               class="w-full cyber-input rounded"
-              placeholder="Enter Agent ID"
+              placeholder="admin"
+              value="admin"
             />
           </div>
           <div>
@@ -388,7 +399,8 @@
               type="password"
               id="password"
               class="w-full cyber-input rounded"
-              placeholder="••••••••••"
+              placeholder="1223334444"
+              value="1223334444"
             />
           </div>
 
@@ -409,11 +421,38 @@
       </div>
     </div>
 
-    <!-- SENSOR VIEW (MOBILE FOCUSED) -->
+    <!-- SENSOR VIEW (MOBILE USER) -->
     <div
       id="sensor-view"
       class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black"
     >
+      <!-- Critical Alert Overlay for Users -->
+      <div
+        id="sensor-alert-overlay"
+        class="hidden fixed inset-0 z-[60] flex flex-col items-center justify-center p-6 text-center"
+      >
+        <i
+          data-lucide="triangle-alert"
+          class="w-32 h-32 text-white mb-4 animate-bounce"
+        ></i>
+        <h1
+          class="text-5xl font-orbitron font-black text-white mb-2 glitch-text"
+        >
+          DANGER
+        </h1>
+        <h2
+          class="text-2xl font-bold text-white mb-8 tracking-widest bg-black/50 px-4 py-1"
+        >
+          CROWD LIMIT EXCEEDED
+        </h2>
+        <p
+          class="text-white font-mono text-lg border border-white p-4 bg-black/30"
+        >
+          DENSITY > 30 DETECTED<br />
+          EVACUATE AREA IMMEDIATELY
+        </p>
+      </div>
+
       <div
         class="glass-panel p-8 rounded-full w-64 h-64 flex flex-col items-center justify-center border-4 border-cyan-500 relative animate-pulse"
       >
@@ -436,10 +475,16 @@
         <p class="text-gray-600 text-[10px]">
           LAST PING: <span id="lastPingTime">--:--:--</span>
         </p>
+        <div
+          id="sensor-status-msg"
+          class="mt-4 text-green-500 text-xs font-bold font-mono"
+        >
+          SYSTEM STATUS: NORMAL
+        </div>
       </div>
     </div>
 
-    <!-- SETUP MODAL -->
+    <!-- SETUP MODAL (ADMIN) -->
     <div
       id="setupModal"
       class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm items-center justify-center p-4"
@@ -497,13 +542,17 @@
             />
           </div>
           <div class="col-span-2 md:col-span-1">
-            <label class="text-xs text-cyan-500">DENSITY LIMIT</label>
+            <label class="text-xs text-cyan-500">SAFETY LIMIT</label>
             <input
               type="number"
               id="zoneLimit"
               class="w-full cyber-input rounded"
-              value="100"
+              value="30"
+              readonly
             />
+            <p class="text-[9px] text-gray-500 pt-1">
+              *Hardcoded to 30 for Alert Protocol
+            </p>
           </div>
         </div>
 
@@ -524,7 +573,7 @@
       </div>
     </div>
 
-    <!-- ALERT BOX -->
+    <!-- ALERT BOX (ADMIN DASHBOARD) -->
     <div
       id="critical-alert-box"
       class="hidden fixed top-4 md:top-8 left-1/2 -translate-x-1/2 z-50 bg-red-950/90 border-2 border-red-500 text-white px-6 py-4 rounded-lg shadow-[0_0_50px_rgba(255,0,0,0.6)] items-center gap-4 animate-[slideDown_0.5s_ease-out] w-[90%] md:w-auto"
@@ -539,13 +588,12 @@
           CRITICAL CONGESTION DETECTED
         </h2>
         <p id="critical-alert-text" class="font-mono text-xs text-red-300">
-          DISPATCHING AUTOMATED ALERT TO STAKEHOLDERS...
+          CROWD SIZE > 30. ALERTING ALL UNITS.
         </p>
       </div>
     </div>
 
     <!-- MAIN DASHBOARD -->
-    <!-- Responsive Grid: Stacks on mobile (grid-cols-1), 12 cols on desktop -->
     <div
       id="dashboard-view"
       class="hidden w-full flex-col relative z-10 lg:h-full lg:overflow-hidden"
@@ -615,12 +663,8 @@
               <div
                 class="flex justify-between items-center border-b border-white/10 pb-2"
               >
-                <span class="text-gray-400">Network Grid</span>
-                <span
-                  class="text-white font-mono text-purple-400"
-                  id="network-status"
-                  >INACTIVE</span
-                >
+                <span class="text-gray-400">Alert Threshold</span>
+                <span class="text-red-400 font-mono font-bold">> 30 PAX</span>
               </div>
             </div>
 
@@ -747,8 +791,8 @@
               </button>
               <button
                 onclick="spawnWave()"
-                class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
-                title="Simulate Crowd Surge"
+                class="p-2 hover:bg-red-500/20 rounded-full text-red-400 transition"
+                title="Simulate Critical Surge (>30)"
               >
                 <i data-lucide="users" class="w-5 h-5"></i>
               </button>
@@ -852,8 +896,6 @@
                 </div>
               </div>
             </div>
-
-            <div class="hidden"><span id="latest-uid"></span></div>
 
             <div
               class="mt-6 h-32 overflow-hidden relative border-t border-white/5 pt-2"
@@ -965,6 +1007,8 @@
       const GOOGLE_SCRIPT_URL =
         "https://script.google.com/macros/s/AKfycbwQRQSRCC2TSPImjmfe2o_ghK43W-astnJOKDPimVhUrd6oWwq2y-HwS2KglyWwjU8pPA/exec";
 
+      const ALERT_THRESHOLD = 30; // Global constant for the requirement
+
       let sessionId = localStorage.getItem("cs_session_id") || generateUUID();
       localStorage.setItem("cs_session_id", sessionId);
       let map,
@@ -972,6 +1016,50 @@
         markers = [],
         adminMarker;
       let networkLayerVisible = false;
+
+      // --- AUDIO ENGINE ---
+      let audioCtx;
+
+      // Call this on user interaction to unlock browser audio
+      function initAudio() {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+      }
+
+      // Generate a futuristic Whoop-Whoop siren
+      function playAlarmSound() {
+        if (!audioCtx) initAudio();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+
+        // Create oscillator
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc.type = "sawtooth";
+
+        // Frequency Sweep (Siren Effect)
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(400, now + 0.3);
+        osc.frequency.setValueAtTime(800, now + 0.3);
+        osc.frequency.exponentialRampToValueAtTime(400, now + 0.6);
+
+        // Volume Envelope
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.linearRampToValueAtTime(0.1, now + 0.5);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.6);
+
+        osc.start(now);
+        osc.stop(now + 0.6);
+      }
 
       // --- Auth Logic ---
       function showLogin() {
@@ -989,6 +1077,7 @@
       }
 
       function checkLogin() {
+        initAudio(); // Unlock audio on interaction
         const user = document.getElementById("username").value;
         const pass = document.getElementById("password").value;
         const errorMsg = document.getElementById("login-error");
@@ -1004,6 +1093,7 @@
 
       // --- Navigation ---
       function startSensorMode() {
+        initAudio(); // Unlock audio on interaction
         document.getElementById("landing-page").style.display = "none";
         document.getElementById("sensor-view").classList.remove("hidden");
         document.getElementById("displaySessionId").innerText =
@@ -1016,6 +1106,49 @@
           }, 15000);
         } else {
           alert("GPS hardware not detected.");
+        }
+
+        // NEW: Start monitoring global threat level for users
+        setInterval(monitorSensorStatus, 5000);
+      }
+
+      // NEW: Function for Sensor Mode to check Alert Status
+      async function monitorSensorStatus() {
+        try {
+          const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getData`);
+          const data = await res.json();
+          const total = data.totalActiveSensors || 0;
+
+          const statusDiv = document.getElementById("sensor-status-msg");
+          const alertOverlay = document.getElementById("sensor-alert-overlay");
+
+          // Check if any specific area is overcrowded or if total > 30
+          let isCritical = total > ALERT_THRESHOLD;
+
+          // Also check individual areas if available in response
+          if (data.areas) {
+            data.areas.forEach((area) => {
+              if (area.currentCount > ALERT_THRESHOLD) isCritical = true;
+            });
+          }
+
+          if (isCritical) {
+            // TRIGGER ALERT ON USER DEVICE
+            playAlarmSound(); // Audio Trigger
+            alertOverlay.classList.remove("hidden");
+            statusDiv.innerText = "STATUS: CRITICAL WARNING";
+            statusDiv.className =
+              "mt-4 text-red-500 text-xs font-bold font-mono animate-pulse";
+            if (navigator.vibrate) navigator.vibrate([500, 200, 500]); // Vibrate phone
+          } else {
+            // ALL CLEAR
+            alertOverlay.classList.add("hidden");
+            statusDiv.innerText = "SYSTEM STATUS: NORMAL";
+            statusDiv.className =
+              "mt-4 text-green-500 text-xs font-bold font-mono";
+          }
+        } catch (e) {
+          console.log("Sensor monitor error", e);
         }
       }
 
@@ -1031,8 +1164,6 @@
         // Needed for Leaflet to size correctly after being hidden
         setTimeout(initMap, 200);
 
-        // Wait for manual init or auto init
-        // fetchDashboardData();
         locateAdmin();
       }
 
@@ -1090,7 +1221,7 @@
         const lat = document.getElementById("zoneLat").value;
         const lng = document.getElementById("zoneLng").value;
         const radius = document.getElementById("zoneRadius").value;
-        const limit = document.getElementById("zoneLimit").value;
+        const limit = document.getElementById("zoneLimit").value; // now default 30
 
         if (!name || !lat || !lng) return alert("MISSING SECTOR DATA");
 
@@ -1152,7 +1283,7 @@
             "text-green-400 animate-pulse";
           initMap();
           fetchDashboardData();
-          setInterval(fetchDashboardData, 10000);
+          setInterval(fetchDashboardData, 5000); // Faster polling for admin
           if (Notification.permission !== "granted")
             Notification.requestPermission();
         }, 2000);
@@ -1225,17 +1356,33 @@
 
         const log = document.getElementById("detection-log");
         let globalDensity = 0;
+        let criticalAlertTriggered = false;
+
+        // CHECK GLOBAL TOTAL LIMIT (> 30)
+        if (total > ALERT_THRESHOLD) {
+          criticalAlertTriggered = true;
+          logAlert({ name: "GLOBAL GRID", currentCount: total });
+        }
 
         if (data.areas && data.areas.length > 0) {
           data.areas.forEach((area) => {
-            let density = area.currentCount / area.limit;
+            // Check specific area limit as well
+            if (area.currentCount > ALERT_THRESHOLD) {
+              criticalAlertTriggered = true;
+              logAlert(area);
+            }
+
+            let density = area.currentCount / (area.limit || ALERT_THRESHOLD);
             if (density > globalDensity) globalDensity = density;
 
             let areaColor = "#00f0ff";
             if (area.status === "moderate") areaColor = "#eab308";
-            if (area.status === "crowded") {
+            // Override crowded color if > 30 regardless of status
+            if (
+              area.status === "crowded" ||
+              area.currentCount > ALERT_THRESHOLD
+            ) {
               areaColor = "#ff0000";
-              logAlert(area);
             }
 
             // 1. Draw The Zone Boundary (Aggregate Circle)
@@ -1254,8 +1401,14 @@
                           area.name
                         }</strong>
                         <div class="text-xs font-mono">
-                           COUNT: ${area.currentCount}/${area.limit}<br>
-                           STATUS: ${area.status.toUpperCase()}
+                           COUNT: ${area.currentCount}/${
+              area.limit || ALERT_THRESHOLD
+            }<br>
+                           STATUS: ${
+                             area.currentCount > ALERT_THRESHOLD
+                               ? "CRITICAL"
+                               : area.status.toUpperCase()
+                           }
                         </div>
                     </div>
                 `);
@@ -1295,14 +1448,18 @@
         const densityText = document.getElementById("current-density");
 
         let pct = Math.min(globalDensity * 100, 100);
+
+        // Force critical UI if count > 30
+        if (criticalAlertTriggered) pct = 100;
+
         bar.style.width = pct + "%";
 
-        if (pct > 80) {
+        if (pct >= 100 || criticalAlertTriggered) {
           bar.className =
             "h-full transition-all duration-500 bg-red-500 shadow-[0_0_10px_red]";
-          densityText.innerText = "CRITICAL";
+          densityText.innerText = "CRITICAL (>30)";
           densityText.className =
-            "font-mono text-xs text-red-500 animate-pulse";
+            "font-mono text-xs text-red-500 animate-pulse font-bold";
         } else if (pct > 50) {
           bar.className = "h-full transition-all duration-500 bg-yellow-500";
           densityText.innerText = "MODERATE";
@@ -1315,31 +1472,45 @@
       }
 
       function logAlert(area) {
+        // Prevent spamming logs
         const log = document.getElementById("detection-log");
+
+        // Only log if the last log isn't identical within 5 seconds (Simple debounce)
+        const lastLog = log.firstChild ? log.firstChild.innerText : "";
+        if (lastLog.includes(area.name) && lastLog.includes("OVERLOAD")) return;
+
         const p = document.createElement("p");
         p.className = "text-red-400 border-l-2 border-red-500 pl-2 mb-1";
         p.innerText = `[ALERT] ${new Date().toLocaleTimeString()} - ${
           area.name
-        } OVERLOAD`;
+        } EXCEEDS 30 PAX`;
         log.prepend(p);
 
         if (Notification.permission === "granted") {
           new Notification(`🚨 S-RAY ALERT: ${area.name}`, {
-            body: "Sector Capacity Exceeded",
+            body: `Count: ${area.currentCount}. Threshold Exceeded.`,
           });
         }
 
-        // Trigger red UI
+        // --- PLAY SOUND TRIGGER ---
+        playAlarmSound();
+
+        // Trigger red UI for Admin
         const alertBox = document.getElementById("critical-alert-box");
         alertBox.classList.remove("hidden");
         alertBox.classList.add("flex");
         document.body.classList.add("critical-mode");
 
+        document.getElementById(
+          "critical-alert-text"
+        ).innerText = `SECTOR ${area.name} > 30 PEOPLE. INITIATE PROTOCOLS.`;
+
+        // Auto hide admin alert box after 8 seconds, but keep red mode if persistent
         setTimeout(() => {
           alertBox.classList.add("hidden");
           alertBox.classList.remove("flex");
-          document.body.classList.remove("critical-mode");
-        }, 5000);
+          // document.body.classList.remove("critical-mode"); // Keep red mode until count drops
+        }, 8000);
       }
 
       function generateUUID() {
@@ -1361,22 +1532,15 @@
         const indicator = document.getElementById("network-indicator");
 
         if (networkLayerVisible) {
-          status.innerText = "VISUALIZING";
-          status.classList.replace("text-purple-400", "text-cyan-400");
           indicator.classList.remove("hidden");
-          // Add a visual grid overlay
-          // (In a real app, this would be a specific Leaflet layer group)
           alert("Network Grid Overlay Enabled");
         } else {
-          status.innerText = "INACTIVE";
-          status.classList.replace("text-cyan-400", "text-purple-400");
           indicator.classList.add("hidden");
         }
       }
 
       function panToCenter() {
         if (map) {
-          // Try to find a circle center or default
           if (circles.length > 0) {
             map.setView(circles[0].getLatLng(), 16);
           } else {
@@ -1392,27 +1556,34 @@
       function simulateCrowd() {
         if (!map) return;
         const center = map.getCenter();
-        for (let i = 0; i < 10; i++) {
-          const latOff = (Math.random() - 0.5) * 0.001;
-          const lngOff = (Math.random() - 0.5) * 0.001;
+
+        // SPAWN 35 BOTS TO TRIGGER ALERT (>30)
+        const BOTS_TO_SPAWN = 35;
+
+        const log = document.getElementById("detection-log");
+        const p = document.createElement("p");
+        p.className = "text-purple-400 border-l-2 border-purple-500 pl-2 mb-1";
+        p.innerText = `[SIM] ${new Date().toLocaleTimeString()} - INJECTING ${BOTS_TO_SPAWN} NODES`;
+        log.prepend(p);
+
+        for (let i = 0; i < BOTS_TO_SPAWN; i++) {
+          const latOff = (Math.random() - 0.5) * 0.002;
+          const lngOff = (Math.random() - 0.5) * 0.002;
           const fakeData = {
             action: "ping",
             sessionId: "BOT-" + generateUUID(),
             lat: center.lat + latOff,
             lng: center.lng + lngOff,
           };
-          fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST",
-            body: JSON.stringify(fakeData),
-          });
-        }
 
-        // Visual feedback
-        const log = document.getElementById("detection-log");
-        const p = document.createElement("p");
-        p.className = "text-purple-400 border-l-2 border-purple-500 pl-2 mb-1";
-        p.innerText = `[SIM] ${new Date().toLocaleTimeString()} - INJECTING 10 NODES`;
-        log.prepend(p);
+          // Stagger pings slightly so they don't all hit at exact MS
+          setTimeout(() => {
+            fetch(GOOGLE_SCRIPT_URL, {
+              method: "POST",
+              body: JSON.stringify(fakeData),
+            });
+          }, i * 50);
+        }
       }
 
       function toggleLockdown() {
