@@ -839,6 +839,202 @@
             }
             .team-member { padding: 1.5rem; }
         }
+
+        
+/* --- SECTION LAYOUT --- */
+#ai-monitor {
+    padding: 6rem 0;
+    background-color: var(--bg-deep);
+    color: var(--text-white);
+    font-family: var(--font-main);
+    position: relative;
+    overflow: hidden;
+}
+
+.container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.section-title {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--text-white);
+}
+
+.reveal p {
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    font-weight: 300;
+}
+
+/* --- AI DASHBOARD LAYOUT --- */
+.ai-layout-wrapper {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr; /* Cards take more space, Panel takes less */
+    gap: 2rem;
+    align-items: start;
+    margin-top: 2rem;
+}
+
+@media (max-width: 900px) {
+    .ai-layout-wrapper {
+        grid-template-columns: 1fr; /* Stack on mobile/tablet */
+    }
+}
+
+/* --- CARD GRID (Placeholder for JS injected cards) --- */
+.ai-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    min-height: 300px; /* Min height to maintain shape if empty */
+}
+
+/* --- SHARED GLASS PANEL STYLE --- */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    border-top: 1px solid var(--glass-highlight);
+    border-radius: 24px;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-panel:hover {
+    box-shadow: 0 0 30px rgba(0, 210, 255, 0.1);
+}
+
+/* --- SYSTEM LOG --- */
+.system-log {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    height: 150px;
+    overflow-y: auto;
+    padding: 1rem;
+    font-family: 'Courier New', monospace; /* Tech feel */
+    font-size: 0.85rem;
+    color: #00e676; /* Terminal Green */
+    margin-bottom: 1.5rem;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* Custom Scrollbar for Log */
+.system-log::-webkit-scrollbar { width: 6px; }
+.system-log::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+.system-log::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+.log-entry {
+    margin-bottom: 6px;
+    display: flex;
+    gap: 10px;
+    opacity: 0.9;
+}
+
+.log-time {
+    color: var(--text-dim);
+    font-weight: 600;
+}
+
+/* --- GEMINI AI ASSISTANT PANEL --- */
+.ai-assistant-panel {
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(189, 165, 243, 0.15); /* Subtle Purple Tint for Gemini */
+}
+
+/* Header & Title */
+.gemini-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.gemini-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(90deg, #fff, #bda5f3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Controls & Buttons */
+.gemini-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.gemini-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-dim);
+    padding: 6px 14px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.gemini-btn:hover {
+    background: var(--text-white);
+    color: var(--bg-deep);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Output Area (Terminal Style) */
+.gemini-output-area {
+    background: rgba(10, 12, 20, 0.6);
+    border: 1px solid rgba(189, 165, 243, 0.2); /* Purple Border */
+    border-radius: 12px;
+    padding: 1.2rem;
+    min-height: 140px;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    position: relative;
+}
+
+/* Pulsing "Waiting" text effect */
+.gemini-output-area:empty::before {
+    content: 'Waiting for tactical analysis...';
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+}
+
+/* Decorative Glow for Gemini Panel */
+.ai-assistant-panel::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 100px;
+    height: 100px;
+    background: var(--accent-purple);
+    filter: blur(60px);
+    opacity: 0.15;
+    pointer-events: none;
+}
     </style>
 </head>
 <body>
@@ -972,6 +1168,69 @@
                 </div>
             </div>
         </div>
+    </section>
+    <!-- AI MONITOR -->
+    <section id="ai-monitor">
+      <div class="container">
+        <div class="reveal" style="text-align: center; margin-bottom: 3rem">
+          <h2 class="section-title">AI Population Monitor</h2>
+          <p>Autonomous decision making based on live zone density.</p>
+        </div>
+
+        <div class="ai-layout-wrapper reveal">
+          <!-- Card Grid -->
+          <div class="ai-dashboard-grid" id="zone-grid">
+            <!-- Cards injected by JS -->
+          </div>
+
+          <!-- Log Panel -->
+          <div>
+            <div
+              style="
+                margin-bottom: 0.5rem;
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: var(--text-dim);
+                letter-spacing: 1px;
+              "
+            >
+              LIVE SYSTEM LOG
+            </div>
+            <div class="system-log" id="system-log-container">
+              <div class="log-entry">
+                <span class="log-time">System</span
+                ><span>Initializing AI tracking nodes...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- NEW: GEMINI AI ASSISTANT PANEL -->
+          <div class="glass-panel ai-assistant-panel">
+            <div class="gemini-header">
+              <div class="gemini-title">
+                <span style="font-size: 1.2rem">✨</span>
+                Gemini Tactical Assistant
+              </div>
+              <div class="gemini-controls">
+                <button class="gemini-btn" onclick="generateStrategy()">
+                  Analyze Strategy ✨
+                </button>
+                <button class="gemini-btn" onclick="generateAnnouncement()">
+                  Draft PA Announcement ✨
+                </button>
+              </div>
+            </div>
+            <div
+              style="font-size: 0.9rem; color: #bda5f3; margin-bottom: 0.5rem"
+            >
+              AI RESPONSE TERMINAL
+            </div>
+            <div class="gemini-output-area" id="gemini-output">
+              System ready. Waiting for query...
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
      <!-- NEW SMART EXIT GUIDANCE SECTION -->
@@ -1271,6 +1530,93 @@ We envision a future where technology works silently and responsibly to protect 
 
    <!-- JAVASCRIPT -->
     <script>
+
+
+
+
+
+
+
+
+    /* --- 1. AI MONITOR LOGIC & GEMINI INTEGRATION --- */
+
+      // Global access to current zone data for the AI to read
+      let currentZones = [
+        { id: "z1", name: "North Plaza", score: 34 },
+        { id: "z2", name: "West Entry", score: 65 },
+        { id: "z3", name: "East Corridor", score: 88 },
+        { id: "z4", name: "Main Stage", score: 42 },
+      ];
+
+      /* --- Gemini API Helper --- */
+      async function callGemini(prompt) {
+        const outputArea = document.getElementById("gemini-output");
+        outputArea.innerHTML =
+          "Processing data<span class='typing-indicator'>...</span>";
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }],
+        };
+
+        try {
+          let response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          // Simple backoff retry for reliability (1 retry)
+          if (!response.ok) {
+            await new Promise((r) => setTimeout(r, 1000));
+            response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+          }
+
+          const data = await response.json();
+          const text =
+            data.candidates?.[0]?.content?.parts?.[0]?.text ||
+            "No response generated.";
+
+          // Typewriter effect for response
+          outputArea.innerHTML = "";
+          let i = 0;
+          const type = () => {
+            if (i < text.length) {
+              outputArea.innerHTML += text.charAt(i);
+              i++;
+              setTimeout(type, 10); // Speed of typing
+            }
+          };
+          type();
+        } catch (error) {
+          console.error(error);
+          outputArea.innerHTML =
+            "Connection Error: Unable to reach Gemini Tactical Support.";
+        }
+      }
+
+      // Feature 1: Tactical Strategy
+      function generateStrategy() {
+        const dataStr = JSON.stringify(
+          currentZones.map((z) => `${z.name}: ${z.score}% density`)
+        );
+        const prompt = `You are a Crowd Safety Tactical AI. 
+            Here is the live zone density data: ${dataStr}. 
+            Identify the highest risk zone. 
+            Provide 3 concise, numbered tactical steps for security personnel to reduce density in that area immediately. 
+            Keep tone authoritative and military-precise.`;
+        callGemini(prompt);
+      }
+
+
+
+
+
         /* --- GOOGLE MAPS STYLE SIMULATION --- */
         const initSafetyMap = () => {
             const canvas = document.getElementById('safety-canvas');

@@ -1467,6 +1467,11 @@
           .then((d) => {
             alert("SECTOR CONFIGURED: " + d.message);
             closeSetupModal();
+          })
+          .catch((e) => {
+            console.error("Sector configuration failed:", e);
+            alert("SECTOR CONFIGURATION FAILED - Using local mode");
+            closeSetupModal();
           });
       }
 
@@ -1836,6 +1841,8 @@
           fetch(GOOGLE_SCRIPT_URL, {
             method: "POST",
             body: JSON.stringify(fakeData),
+          }).catch((e) => {
+            console.log("Simulation data upload failed (expected in offline mode):", e);
           });
         }
 

@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>S-RAY | Crowd Safety Intelligence</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+      /* --- 1. CORE VARIABLES & RESET --- */
+      :root {
+        --bg-deep: #020408;
+        --bg-surface: #0a111a;
+        --accent-safe: #00d2ff;
+        --accent-alert: #ffb74d;
+        --accent-critical: #ff1744;
+        --accent-ai: #8b5cf6; /* New AI Color */
+        --text-white: #ffffff;
+        --text-dim: #94a3b8;
+        --glass-bg: rgba(15, 23, 42, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --font-main: "DM Sans", sans-serif;
+        --section-spacing: 100px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: var(--bg-deep);
+        color: var(--text-white);
+        font-family: var(--font-main);
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* --- 2. TYPOGRAPHY --- */
+      h1,
+      h2,
+      h3,
+      h4 {
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+      p {
+        line-height: 1.6;
+        color: var(--text-dim);
+      }
+
+      .display-text {
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        background: linear-gradient(180deg, #fff 0%, #a5b4fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1.5rem;
+        text-shadow: 0 0 40px rgba(0, 210, 255, 0.15);
+      }
+
+      .section-title {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: white;
+      }
+
+      /* --- 3. LAYOUT UTILITIES --- */
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        position: relative;
+        z-index: 2;
+      }
+
+      section {
+        padding: var(--section-spacing) 0;
+        position: relative;
+        width: 100%;
+      }
+
+      .glass-panel {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        overflow: hidden;
+      }
+
+      /* --- 4. NAVIGATION --- */
+      .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 80px;
+        z-index: 1000;
+        background: rgba(2, 4, 8, 0.85);
+        backdrop-filter: blur(15px);
+        border-bottom: 1px solid var(--glass-border);
+      }
+
+      .nav-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: 100%;
+      }
+
+      .logo {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo-dot {
+        width: 10px;
+        height: 10px;
+        background: var(--accent-safe);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--accent-safe);
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+      }
+      .nav-link {
+        color: var(--text-dim);
+        text-decoration: none;
+        font-size: 0.95rem;
+        transition: color 0.3s;
+      }
+      .nav-link:hover {
+        color: white;
+      }
+
+      .nav-cta {
+        padding: 10px 24px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50px;
+        color: white;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
+      .nav-cta:hover {
+        background: white;
+        color: black;
+      }
+
+      .mobile-menu-btn {
+        display: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        }
+        .mobile-menu-btn {
+          display: block;
+        }
+        .nav-links.mobile-open {
+          display: flex;
+          flex-direction: column;
+          position: absolute;
+          top: 80px;
+          left: 0;
+          width: 100%;
+          background: var(--bg-deep);
+          padding: 2rem;
+          border-bottom: 1px solid var(--glass-border);
+        }
+      }
+
+      /* --- 5. HERO SECTION --- */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        padding-top: 80px;
+      }
+
+      #webgl-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 200px;
+        background: linear-gradient(to bottom, transparent, var(--bg-deep));
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      .hero-content {
+        text-align: center;
+        max-width: 800px;
+        z-index: 2;
+        position: relative;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 50px;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 1.5rem;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(4px);
+      }
+
+      .hero-action-deck {
+        margin-top: 3rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .btn-cinematic {
+        padding: 16px 36px;
+        background: rgba(0, 210, 255, 0.1);
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        border: 1px solid var(--accent-safe);
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 0 20px rgba(0, 210, 255, 0.2);
+      }
+      .btn-cinematic:hover {
+        background: var(--accent-safe);
+        color: #000;
+        box-shadow: 0 0 40px rgba(0, 210, 255, 0.4);
+      }
+
+      /* --- 6. OVERVIEW / FEATURES --- */
+      .features-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3rem;
+        max-width: 900px;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .vis-wrapper {
+        height: 300px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 20px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid var(--glass-border);
+      }
+
+      .soft-pulse {
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(0, 210, 255, 0.2) 0%,
+          transparent 70%
+        );
+        animation: pulse 3s infinite ease-in-out;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(0.9);
+          opacity: 0.5;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 0.8;
+        }
+      }
+
+      /* --- 7. AI MONITOR & GEMINI UI --- */
+      .ai-layout-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .ai-dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .ai-zone-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        position: relative;
+        transition: transform 0.3s;
+      }
+      .ai-zone-card:hover {
+        transform: translateY(-5px);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .ai-zone-card::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--accent-safe);
+      }
+      .ai-zone-card.caution::after {
+        background: var(--accent-alert);
+      }
+      .ai-zone-card.critical::after {
+        background: var(--accent-critical);
+      }
+
+      .zone-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+      }
+      .zone-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: white;
+      }
+
+      .score-bar-bg {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        margin: 0.5rem 0 1.5rem;
+        overflow: hidden;
+      }
+      .score-bar-fill {
+        height: 100%;
+        background: var(--accent-safe);
+        width: 0%;
+        transition: width 0.5s;
+      }
+
+      /* System Log */
+      .system-log {
+        width: 100%;
+        background: #050a10;
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        height: 150px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.85rem;
+      }
+      .log-entry {
+        padding: 4px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        gap: 1rem;
+      }
+      .log-time {
+        color: #5c6b7f;
+      }
+
+      /* Gemini Assistant Panel */
+      .ai-assistant-panel {
+        padding: 1.5rem;
+        background: rgba(139, 92, 246, 0.05); /* Slight purple tint */
+        border: 1px solid rgba(139, 92, 246, 0.2);
+      }
+      .gemini-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+      .gemini-title {
+        color: var(--accent-ai);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .gemini-controls {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .gemini-btn {
+        background: linear-gradient(135deg, #6d28d9, #8b5cf6);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+      }
+      .gemini-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(139, 92, 246, 0.5);
+      }
+      .gemini-btn:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+
+      .gemini-output-area {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 1rem;
+        min-height: 80px;
+        margin-top: 1rem;
+        font-family: "DM Sans", sans-serif;
+        font-size: 0.95rem;
+        color: #e2e8f0;
+        border-left: 3px solid var(--accent-ai);
+        white-space: pre-wrap;
+        line-height: 1.6;
+      }
+      .typing-indicator {
+        display: inline-block;
+        animation: blink 1s infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      /* --- 8. SAFETY MAP --- */
+      .safety-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4rem;
+        align-items: center;
+      }
+
+      @media (max-width: 900px) {
+        .safety-container {
+          grid-template-columns: 1fr;
+          gap: 2rem;
+        }
+      }
+
+      .safety-map-wrapper {
+        height: 450px;
+        background: #1e293b;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--glass-border);
+      }
+      #safety-canvas {
+        width: 100%;
+        height: 100%;
+      }
+
+      .guidance-step {
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+        transition: all 0.3s;
+      }
+      .guidance-step.active {
+        opacity: 1;
+        border-color: var(--accent-safe);
+        background: rgba(0, 210, 255, 0.05);
+        transform: scale(1.02);
+      }
+
+      /* --- 9. TEAM SECTION --- */
+      .team-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+      }
+      .team-member {
+        background: rgba(255, 255, 255, 0.02);
+        padding: 2rem;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        border: 1px solid var(--glass-border);
+        transition: transform 0.3s;
+      }
+      .team-member:hover {
+        transform: translateY(-5px);
+        border-color: var(--accent-safe);
+      }
+      .member-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: rgba(0, 210, 255, 0.1);
+        color: var(--accent-safe);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+      }
+
+      /* --- 10. ANIMATION HELPERS --- */
+      .reveal {
+        opacity: 0;
+        visibility: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav class="navbar">
+      <div class="container nav-container">
+        <a href="#" class="logo"
+          ><div class="logo-dot"></div>
+          S-RAY</a
+        >
+        <div class="nav-links">
+          <a href="#overview" class="nav-link">Features</a>
+          <a href="#ai-monitor" class="nav-link">Monitor</a>
+          <a href="#safety" class="nav-link">Safety</a>
+          <a href="#about" class="nav-link">Team</a>
+        </div>
+        <a href="gpsTracking.html" class="nav-cta">Dashboard</a>
+        <div class="mobile-menu-btn">☰</div>
+      </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div id="webgl-container"></div>
+
+      <div class="container hero-content">
+        <div class="badge">Next-Gen Public Safety</div>
+        <h1 class="display-text">CROWD DENSITY<br />INTELLIGENCE</h1>
+        <p style="font-size: 1.2rem; max-width: 600px; margin: 0 auto">
+          Autonomous monitoring and real-time risk assessment powered by
+          computer vision. Secure spaces without facial recognition.
+        </p>
+
+        <div class="hero-action-deck">
+          <div
+            style="
+              font-size: 0.8rem;
+              letter-spacing: 2px;
+              text-transform: uppercase;
+              color: var(--text-dim);
+            "
+          >
+            Live Access
+          </div>
+          <button
+            class="btn-cinematic"
+            onclick="document.getElementById('ai-monitor').scrollIntoView({behavior: 'smooth'})"
+          >
+            Launch AI Monitor
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES (OVERVIEW) -->
+    <section id="overview" style="background: var(--bg-surface)">
+      <div class="container">
+        <div class="features-grid">
+          <!-- Text -->
+          <div class="reveal">
+            <h2 class="section-title">Anonymous Tracking. Real Results.</h2>
+            <p style="max-width: 600px; margin: 0 auto 2rem">
+              S-RAY converts complex video feeds into simple data points. We
+              calculate density scores instantly to predict overcrowding before
+              it happens.
+            </p>
+          </div>
+
+          <!-- Visual -->
+          <div class="vis-wrapper reveal">
+            <div class="soft-pulse" id="status-pulse"></div>
+            <div style="position: absolute; text-align: center; z-index: 2">
+              <h3
+                id="status-text"
+                style="font-size: 3rem; margin-bottom: 0.5rem"
+              >
+                Safe
+              </h3>
+              <span
+                id="status-sub"
+                style="
+                  text-transform: uppercase;
+                  letter-spacing: 2px;
+                  font-size: 0.8rem;
+                "
+                >Status: Open</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI MONITOR -->
+    <section id="ai-monitor">
+      <div class="container">
+        <div class="reveal" style="text-align: center; margin-bottom: 3rem">
+          <h2 class="section-title">AI Population Monitor</h2>
+          <p>Autonomous decision making based on live zone density.</p>
+        </div>
+
+        <div class="ai-layout-wrapper reveal">
+          <!-- Card Grid -->
+          <div class="ai-dashboard-grid" id="zone-grid">
+            <!-- Cards injected by JS -->
+          </div>
+
+          <!-- Log Panel -->
+          <div>
+            <div
+              style="
+                margin-bottom: 0.5rem;
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: var(--text-dim);
+                letter-spacing: 1px;
+              "
+            >
+              LIVE SYSTEM LOG
+            </div>
+            <div class="system-log" id="system-log-container">
+              <div class="log-entry">
+                <span class="log-time">System</span
+                ><span>Initializing AI tracking nodes...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- NEW: GEMINI AI ASSISTANT PANEL -->
+          <div class="glass-panel ai-assistant-panel">
+            <div class="gemini-header">
+              <div class="gemini-title">
+                <span style="font-size: 1.2rem">✨</span>
+                Gemini Tactical Assistant
+              </div>
+              <div class="gemini-controls">
+                <button class="gemini-btn" onclick="generateStrategy()">
+                  Analyze Strategy ✨
+                </button>
+                <button class="gemini-btn" onclick="generateAnnouncement()">
+                  Draft PA Announcement ✨
+                </button>
+              </div>
+            </div>
+            <div
+              style="font-size: 0.9rem; color: #bda5f3; margin-bottom: 0.5rem"
+            >
+              AI RESPONSE TERMINAL
+            </div>
+            <div class="gemini-output-area" id="gemini-output">
+              System ready. Waiting for query...
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SAFETY MAP -->
+    <section id="safety" style="background: var(--bg-surface)">
+      <div class="container">
+        <div class="safety-container reveal">
+          <!-- Text Side -->
+          <div>
+            <div
+              class="badge"
+              style="
+                border-color: var(--accent-safe);
+                color: var(--accent-safe);
+              "
+            >
+              Live Navigation
+            </div>
+            <h2 class="section-title">Smart Exit Guidance</h2>
+            <p style="margin-bottom: 2rem">
+              Dynamic rerouting prevents bottlenecks. When a zone hits critical
+              mass, S-RAY automatically updates exit paths.
+            </p>
+
+            <div class="guidance-step active" id="step-A">
+              <h4 style="color: white; margin-bottom: 0.25rem">
+                Via Main Concourse
+              </h4>
+              <p style="font-size: 0.9rem">Fastest Route • 2 min</p>
+            </div>
+
+            <div class="guidance-step" id="step-B">
+              <h4 style="color: white; margin-bottom: 0.25rem">
+                Via East Wing
+              </h4>
+              <p style="font-size: 0.9rem">Alternate Route • 4 min</p>
+            </div>
+          </div>
+
+          <!-- Map Side -->
+          <a
+            href="shortestWay.html"
+            style="display: block; text-decoration: none"
+          >
+            <div class="safety-map-wrapper">
+              <canvas id="safety-canvas"></canvas>
+              <!-- Floating Header inside Map -->
+              <div
+                style="
+                  position: absolute;
+                  top: 20px;
+                  left: 20px;
+                  right: 20px;
+                  background: rgba(0, 0, 0, 0.8);
+                  backdrop-filter: blur(10px);
+                  padding: 15px;
+                  border-radius: 10px;
+                  border: 1px solid rgba(255, 255, 255, 0.1);
+                "
+              >
+                <h4
+                  id="nav-instruction"
+                  style="color: white; font-size: 1rem; margin-bottom: 2px"
+                >
+                  Head North to Gate A
+                </h4>
+                <span
+                  id="nav-distance"
+                  style="color: var(--accent-safe); font-size: 0.85rem"
+                  >150m to exit</span
+                >
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEAM -->
+    <section id="about">
+      <div class="container">
+        <div class="reveal" style="text-align: center; margin-bottom: 4rem">
+          <h2 class="section-title">Our Vision</h2>
+          <p>
+            Created by students from Vidyavardhini's Bhausaheb Vartak
+            Polytechnic.
+          </p>
+        </div>
+
+        <div class="team-grid reveal">
+          <div class="team-member">
+            <div class="member-avatar">AF</div>
+            <div>
+              <h4 style="color: white">Ajinkya Furange</h4>
+              <p style="font-size: 0.85rem">"Error 404: Sleep not found"</p>
+              <p style="font-size: 0.85rem; margin-top: 5px">+91 81081 71769</p>
+            </div>
+          </div>
+          <div class="team-member">
+            <div class="member-avatar">RR</div>
+            <div>
+              <h4 style="color: white">Ronit Rao</h4>
+              <p style="font-size: 0.85rem">"Ctrl+C, Ctrl+V -> Debug"</p>
+              <p style="font-size: 0.85rem; margin-top: 5px">+91 88550 86919</p>
+            </div>
+          </div>
+          <div class="team-member">
+            <div class="member-avatar">SD</div>
+            <div>
+              <h4 style="color: white">Samruddhi Durge</h4>
+              <p style="font-size: 0.85rem">"Design decisions"</p>
+              <p style="font-size: 0.85rem; margin-top: 5px">+91 75584 74923</p>
+            </div>
+          </div>
+          <div class="team-member">
+            <div class="member-avatar">YG</div>
+            <div>
+              <h4 style="color: white">Yadnesh Gawali</h4>
+              <p style="font-size: 0.85rem">"Beauty up front, brains behind"</p>
+              <p style="font-size: 0.85rem; margin-top: 5px">+91 83839 38144</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer
+      style="
+        padding: 4rem 0;
+        text-align: center;
+        border-top: 1px solid var(--glass-border);
+        color: var(--text-dim);
+        font-size: 0.9rem;
+      "
+    >
+      <p>&copy; 2026 S-RAY Intelligence Systems.</p>
+      <p style="margin-top: 0.5rem">
+        <a
+          href="mailto:apexventurs25@gmail.com"
+          style="color: var(--accent-safe); text-decoration: none"
+          >apexventurs25@gmail.com</a
+        >
+      </p>
+    </footer>
+
+    <!-- LOGIC -->
+    <script>
+      const apiKey = ""; // Added for Gemini API
+
+      /* --- 1. AI MONITOR LOGIC & GEMINI INTEGRATION --- */
+
+      // Global access to current zone data for the AI to read
+      let currentZones = [
+        { id: "z1", name: "North Plaza", score: 34 },
+        { id: "z2", name: "West Entry", score: 65 },
+        { id: "z3", name: "East Corridor", score: 88 },
+        { id: "z4", name: "Main Stage", score: 42 },
+      ];
+
+      /* --- Gemini API Helper --- */
+      async function callGemini(prompt) {
+        const outputArea = document.getElementById("gemini-output");
+        outputArea.innerHTML =
+          "Processing data<span class='typing-indicator'>...</span>";
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }],
+        };
+
+        try {
+          let response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          // Simple backoff retry for reliability (1 retry)
+          if (!response.ok) {
+            await new Promise((r) => setTimeout(r, 1000));
+            response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+          }
+
+          const data = await response.json();
+          const text =
+            data.candidates?.[0]?.content?.parts?.[0]?.text ||
+            "No response generated.";
+
+          // Typewriter effect for response
+          outputArea.innerHTML = "";
+          let i = 0;
+          const type = () => {
+            if (i < text.length) {
+              outputArea.innerHTML += text.charAt(i);
+              i++;
+              setTimeout(type, 10); // Speed of typing
+            }
+          };
+          type();
+        } catch (error) {
+          console.error(error);
+          outputArea.innerHTML =
+            "Connection Error: Unable to reach Gemini Tactical Support.";
+        }
+      }
+
+      // Feature 1: Tactical Strategy
+      function generateStrategy() {
+        const dataStr = JSON.stringify(
+          currentZones.map((z) => `${z.name}: ${z.score}% density`)
+        );
+        const prompt = `You are a Crowd Safety Tactical AI. 
+            Here is the live zone density data: ${dataStr}. 
+            Identify the highest risk zone. 
+            Provide 3 concise, numbered tactical steps for security personnel to reduce density in that area immediately. 
+            Keep tone authoritative and military-precise.`;
+        callGemini(prompt);
+      }
+
+      // Feature 2: PA Announcement
+      function generateAnnouncement() {
+        // Find busiest zone
+        const busiest = currentZones.reduce((prev, current) =>
+          prev.score > current.score ? prev : current
+        );
+        const prompt = `You are a stadium announcer AI. 
+            The ${busiest.name} is currently overcrowded at ${busiest.score}%. 
+            Draft a short, calm, but urgent Public Address (PA) announcement script (max 2 sentences) directing people away from ${busiest.name} to less crowded areas. 
+            Tone: Professional, calm, reassuring.`;
+        callGemini(prompt);
+      }
+
+      const initAIMonitor = () => {
+        const grid = document.getElementById("zone-grid");
+        const logContainer = document.getElementById("system-log-container");
+
+        // Create Initial Cards
+        currentZones.forEach((z) => {
+          const el = document.createElement("div");
+          el.className = "ai-zone-card";
+          el.id = `card-${z.id}`;
+          el.innerHTML = `
+                    <div class="zone-header">
+                        <span class="zone-name">${z.name}</span>
+                        <span style="font-size: 0.8rem; font-weight: 700; color: var(--accent-safe);" id="badge-${z.id}">SAFE</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #ccc;">
+                        <span>Density Score</span>
+                        <span id="score-val-${z.id}">${z.score}%</span>
+                    </div>
+                    <div class="score-bar-bg"><div class="score-bar-fill" id="bar-${z.id}" style="width: ${z.score}%"></div></div>
+                    <div style="font-size: 0.85rem; color: var(--text-dim);" id="action-${z.id}">Monitoring active...</div>
+                `;
+          grid.appendChild(el);
+        });
+
+        const addLog = (msg, color = "inherit") => {
+          const d = new Date().toLocaleTimeString("en-GB");
+          const p = document.createElement("div");
+          p.className = "log-entry";
+          p.innerHTML = `<span class="log-time">${d}</span><span style="color: ${color}">${msg}</span>`;
+          logContainer.prepend(p);
+          if (logContainer.children.length > 8) logContainer.lastChild.remove();
+        };
+
+        // Simulation Loop
+        setInterval(() => {
+          currentZones.forEach((zone) => {
+            // Randomize score slightly
+            zone.score = Math.max(
+              0,
+              Math.min(100, zone.score + (Math.floor(Math.random() * 11) - 5))
+            );
+
+            const card = document.getElementById(`card-${zone.id}`);
+            const badge = document.getElementById(`badge-${zone.id}`);
+            const scoreVal = document.getElementById(`score-val-${zone.id}`);
+            const bar = document.getElementById(`bar-${zone.id}`);
+            const action = document.getElementById(`action-${zone.id}`);
+
+            let status = "SAFE",
+              color = "var(--accent-safe)",
+              actText = "Normal flow detected.";
+
+            if (zone.score >= 80) {
+              status = "CRITICAL";
+              color = "var(--accent-critical)";
+              actText = "⚠️ Opening Emergency Exits";
+              card.classList.add("critical");
+              card.classList.remove("caution");
+              if (Math.random() > 0.8)
+                addLog(`CRITICAL: ${zone.name} at ${zone.score}%`, "#ff1744");
+            } else if (zone.score >= 50) {
+              status = "CAUTION";
+              color = "var(--accent-alert)";
+              actText = "Deploying stewards.";
+              card.classList.add("caution");
+              card.classList.remove("critical");
+            } else {
+              card.classList.remove("caution", "critical");
+            }
+
+            badge.innerText = status;
+            badge.style.color = color;
+            scoreVal.innerText = `${zone.score}%`;
+            bar.style.width = `${zone.score}%`;
+            bar.style.background = color;
+            action.innerText = actText;
+          });
+        }, 1500);
+      };
+
+      /* --- 2. MAP SIMULATION --- */
+      const initSafetyMap = () => {
+        const canvas = document.getElementById("safety-canvas");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        let w, h;
+
+        // State
+        let routeToggle = false;
+        const colors = {
+          bg: "#1e293b",
+          road: "#334155",
+          routeA: "#00d2ff",
+          routeB: "#ffb74d",
+        };
+
+        const resize = () => {
+          w = canvas.width = canvas.parentElement.offsetWidth;
+          h = canvas.height = canvas.parentElement.offsetHeight;
+        };
+        window.addEventListener("resize", resize);
+        resize();
+
+        // Toggle route every 5s
+        setInterval(() => {
+          routeToggle = !routeToggle;
+          const instr = document.getElementById("nav-instruction");
+          const dist = document.getElementById("nav-distance");
+          const stepA = document.getElementById("step-A");
+          const stepB = document.getElementById("step-B");
+
+          if (!routeToggle) {
+            instr.innerText = "Head North to Gate A";
+            dist.innerText = "150m to exit";
+            dist.style.color = "var(--accent-safe)";
+            stepA.classList.add("active");
+            stepB.classList.remove("active");
+          } else {
+            instr.innerText = "Rerouting via East Wing...";
+            dist.innerText = "Rerouting detected";
+            dist.style.color = "var(--accent-alert)";
+            stepB.classList.add("active");
+            stepA.classList.remove("active");
+          }
+        }, 5000);
+
+        const animate = () => {
+          ctx.fillStyle = colors.bg;
+          ctx.fillRect(0, 0, w, h);
+
+          // Draw Grid (Roads)
+          ctx.fillStyle = colors.road;
+          ctx.fillRect(w * 0.4, 0, w * 0.2, h); // Main Vert
+          ctx.fillRect(0, h * 0.4, w, h * 0.2); // Main Horz
+
+          // Draw Route Line
+          ctx.strokeStyle = !routeToggle ? colors.routeA : colors.routeB;
+          ctx.lineWidth = 5;
+          ctx.setLineDash([10, 10]);
+          ctx.lineDashOffset = -Date.now() / 20;
+
+          ctx.beginPath();
+          ctx.moveTo(w * 0.5, h * 0.9); // Start
+          if (!routeToggle) {
+            ctx.lineTo(w * 0.5, h * 0.1); // Straight to A
+          } else {
+            ctx.lineTo(w * 0.5, h * 0.5); // Center
+            ctx.lineTo(w * 0.9, h * 0.5); // Right to B
+          }
+          ctx.stroke();
+
+          // User Dot
+          ctx.beginPath();
+          ctx.arc(w * 0.5, h * 0.9, 8, 0, Math.PI * 2);
+          ctx.fillStyle = "white";
+          ctx.fill();
+
+          requestAnimationFrame(animate);
+        };
+        animate();
+      };
+
+      /* --- 3. STATUS ANIMATION --- */
+      const initStatusCycle = () => {
+        const h = document.getElementById("status-text");
+        const s = document.getElementById("status-sub");
+        const states = [
+          { t: "Safe", c: "#00d2ff" },
+          { t: "Busy", c: "#ffb74d" },
+          { t: "Critical", c: "#ff1744" },
+        ];
+        let i = 0;
+        setInterval(() => {
+          i = (i + 1) % 3;
+          gsap.to(h, {
+            opacity: 0,
+            y: -10,
+            onComplete: () => {
+              h.innerText = states[i].t;
+              h.style.color = states[i].c;
+              gsap.to(h, { opacity: 1, y: 0 });
+            },
+          });
+        }, 3000);
+      };
+
+      /* --- 4. 3D BACKGROUND --- */
+      const initThree = () => {
+        const cont = document.getElementById("webgl-container");
+        const scene = new THREE.Scene();
+        // Fog to fade bottom into background color
+        scene.fog = new THREE.FogExp2(0x020408, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        camera.position.z = 20;
+
+        const renderer = new THREE.WebGLRenderer({
+          alpha: true,
+          antialias: true,
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        cont.appendChild(renderer.domElement);
+
+        // Particles
+        const geo = new THREE.BufferGeometry();
+        const pos = [];
+        for (let i = 0; i < 3000; i++) {
+          pos.push(
+            (Math.random() - 0.5) * 100,
+            (Math.random() - 0.5) * 100,
+            (Math.random() - 0.5) * 50
+          );
+        }
+        geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+        const mat = new THREE.PointsMaterial({ size: 0.15, color: 0x00d2ff });
+        const mesh = new THREE.Points(geo, mat);
+        scene.add(mesh);
+
+        const animate = () => {
+          mesh.rotation.y += 0.001;
+          mesh.position.z = Math.sin(Date.now() * 0.0005) * 2;
+          renderer.render(scene, camera);
+          requestAnimationFrame(animate);
+        };
+        animate();
+
+        window.addEventListener("resize", () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      };
+
+      /* --- 5. INIT --- */
+      document.addEventListener("DOMContentLoaded", () => {
+        initThree();
+        initAIMonitor();
+        initSafetyMap();
+        initStatusCycle();
+
+        // GSAP Reveal
+        gsap.registerPlugin(ScrollTrigger);
+        document.querySelectorAll(".reveal").forEach((el) => {
+          gsap.fromTo(
+            el,
+            { y: 50, autoAlpha: 0 },
+            {
+              y: 0,
+              autoAlpha: 1,
+              duration: 1,
+              scrollTrigger: { trigger: el, start: "top 85%" },
+            }
+          );
+        });
+
+        // Mobile Nav
+        const btn = document.querySelector(".mobile-menu-btn");
+        const links = document.querySelector(".nav-links");
+        if (btn)
+          btn.addEventListener("click", () =>
+            links.classList.toggle("mobile-open")
+          );
+      });
+    </script>
+  </body>
+</html>

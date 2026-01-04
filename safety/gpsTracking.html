@@ -1139,6 +1139,7 @@
       let particlesMesh, globe, core, gridHelper;
       let mouseX = 0,
         mouseY = 0;
+      let currentView = "landing-page"; // Track current view
 
       const initThreeJS = () => {
         const container = document.getElementById("canvas-container");
@@ -1400,6 +1401,7 @@
 
         tl.add(() => {
           newView.classList.remove("hidden");
+          currentView = showId; // Update current view
           // If dashboard, stagger items
           if (showId === "dashboard-view") {
             newView.style.display = "flex";
@@ -1741,6 +1743,11 @@
           .then((d) => {
             alert("SECTOR CONFIGURED: " + d.message);
             closeSetupModal();
+          })
+          .catch((e) => {
+            console.error("Sector configuration failed:", e);
+            alert("SECTOR CONFIGURATION FAILED - Using local mode");
+            closeSetupModal();
           });
       }
 
@@ -1953,9 +1960,15 @@
           ease: "power1.inOut",
         });
 
-        // Global alert if total exceeds 30
-        if (total > 30) {
+        // Global alert if total exceeds 30 and user is in sensor-view
+        if (total > 30 && currentView === "sensor-view") {
           logGlobalAlert(total);
+          if (localStorage.getItem("sray_lockdown") !== "true") {
+            localStorage.setItem("sray_lockdown", "true");
+          }
+        } else if (total <= 30 && currentView === "sensor-view" && localStorage.getItem("sray_lockdown") === "true") {
+          // Reset lockdown if total is back to normal
+          localStorage.setItem("sray_lockdown", "false");
         }
 
         const loadPct = Math.min(total * 2, 100);
@@ -2038,6 +2051,12 @@
           });
         }
 
+        // Reset lockdown if no areas are over capacity
+        const hasOverCapacity = data.areas && data.areas.some(area => area.currentCount > 30 || area.status === "crowded");
+        if (!hasOverCapacity && localStorage.getItem("sray_lockdown") === "true") {
+          localStorage.setItem("sray_lockdown", "false");
+        }
+
         const bar = document.getElementById("density-bar-live");
         const densityText = document.getElementById("current-density");
 
@@ -2065,30 +2084,50 @@
         try {
           const audioContext = new (window.AudioContext ||
             window.webkitAudioContext)();
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
+          const duration = 1.0; // Longer duration for more density
 
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
+          // Main oscillator
+          const oscillator1 = audioContext.createOscillator();
+          const gainNode1 = audioContext.createGain();
+          oscillator1.connect(gainNode1);
+          gainNode1.connect(audioContext.destination);
+          oscillator1.frequency.setValueAtTime(800, audioContext.currentTime);
+          oscillator1.frequency.setValueAtTime(600, audioContext.currentTime + 0.2);
+          oscillator1.frequency.setValueAtTime(400, audioContext.currentTime + 0.4);
+          oscillator1.frequency.setValueAtTime(600, audioContext.currentTime + 0.6);
+          oscillator1.frequency.setValueAtTime(800, audioContext.currentTime + 0.8);
+          gainNode1.gain.setValueAtTime(0.2, audioContext.currentTime);
+          gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
 
-          oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // Frequency in Hz
-          oscillator.frequency.setValueAtTime(
-            600,
-            audioContext.currentTime + 0.1
-          );
-          oscillator.frequency.setValueAtTime(
-            800,
-            audioContext.currentTime + 0.2
-          );
+          // Harmonic oscillator (2x frequency)
+          const oscillator2 = audioContext.createOscillator();
+          const gainNode2 = audioContext.createGain();
+          oscillator2.connect(gainNode2);
+          gainNode2.connect(audioContext.destination);
+          oscillator2.frequency.setValueAtTime(1600, audioContext.currentTime);
+          oscillator2.frequency.setValueAtTime(1200, audioContext.currentTime + 0.2);
+          oscillator2.frequency.setValueAtTime(800, audioContext.currentTime + 0.4);
+          oscillator2.frequency.setValueAtTime(1200, audioContext.currentTime + 0.6);
+          oscillator2.frequency.setValueAtTime(1600, audioContext.currentTime + 0.8);
+          gainNode2.gain.setValueAtTime(0.1, audioContext.currentTime);
+          gainNode2.gain.exponentialRampToValueAtTime(0.005, audioContext.currentTime + duration);
 
-          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(
-            0.01,
-            audioContext.currentTime + 0.5
-          );
+          // Low frequency oscillator for depth
+          const oscillator3 = audioContext.createOscillator();
+          const gainNode3 = audioContext.createGain();
+          oscillator3.connect(gainNode3);
+          gainNode3.connect(audioContext.destination);
+          oscillator3.frequency.setValueAtTime(100, audioContext.currentTime);
+          oscillator3.frequency.linearRampToValueAtTime(50, audioContext.currentTime + duration);
+          gainNode3.gain.setValueAtTime(0.05, audioContext.currentTime);
+          gainNode3.gain.exponentialRampToValueAtTime(0.002, audioContext.currentTime + duration);
 
-          oscillator.start(audioContext.currentTime);
-          oscillator.stop(audioContext.currentTime + 0.5);
+          oscillator1.start(audioContext.currentTime);
+          oscillator2.start(audioContext.currentTime);
+          oscillator3.start(audioContext.currentTime);
+          oscillator1.stop(audioContext.currentTime + duration);
+          oscillator2.stop(audioContext.currentTime + duration);
+          oscillator3.stop(audioContext.currentTime + duration);
         } catch (e) {
           console.log("Audio not supported");
         }
@@ -2214,6 +2253,8 @@
           fetch(GOOGLE_SCRIPT_URL, {
             method: "POST",
             body: JSON.stringify(fakeData),
+          }).catch((e) => {
+            console.log("Simulation data upload failed (expected in offline mode):", e);
           });
         }
 
