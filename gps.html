@@ -295,6 +295,14 @@
       .radar-active {
         animation: radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
       }
+      #landing-logo,
+      img {
+        animation: pulse-logo 2s infinite alternate;
+        width: 70px;
+        display: grid;
+        place-items: center;
+        border-radius: 15px;
+      }
     </style>
   </head>
 
@@ -334,11 +342,7 @@
           class="mx-auto mb-6 w-20 h-20 bg-cyan-900/20 rounded-xl border border-cyan-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(0,240,255,0.3)]"
           id="landing-logo"
         >
-          <i
-            data-lucide="scan-eye"
-            class="w-12 h-12 text-cyan-400"
-            id="landing-logo-icon"
-          ></i>
+          <img src="logo.png" alt="Logo" id="landing-logo" />
         </div>
 
         <h1

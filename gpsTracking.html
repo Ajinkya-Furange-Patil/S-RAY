@@ -6,12 +6,13 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>S-RAY Surveillance v7.0 - Responsive Integrated System</title>
+    <title>S-RAY Surveillance v8.0 - Cyber Core</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" href="logo.png" type="image/png" />
 
     <link
       rel="stylesheet"
@@ -30,8 +31,6 @@
         background-color: #050510;
         font-family: "Rajdhani", sans-serif;
         color: white;
-        transition: box-shadow 0.3s ease;
-        /* Mobile: Scrollable, Desktop: Fixed */
         overflow-x: hidden;
         overflow-y: auto;
       }
@@ -87,13 +86,15 @@
         width: 100%;
         height: 100%;
         z-index: -1;
+        /* Ensure it stays behind but visible */
+        pointer-events: none;
       }
 
-      /* Glassmorphism Panels */
+      /* Glassmorphism Panels - More Transparent for 3D Visibility */
       .glass-panel {
-        background: rgba(16, 20, 30, 0.85);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        background: rgba(10, 15, 25, 0.65); /* Reduced opacity from 0.85 */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(0, 240, 255, 0.15);
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
         transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -102,7 +103,7 @@
       /* Dynamic Border Glow */
       .glass-panel:hover {
         border-color: rgba(0, 240, 255, 0.5);
-        box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.1);
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
       }
 
       .tech-border {
@@ -144,9 +145,9 @@
       #map {
         width: 100%;
         height: 100%;
-        background: #0f172a; /* Fallback */
+        background: rgba(15, 23, 42, 0.5); /* Semi-transparent fallback */
         z-index: 1;
-        min-height: 300px; /* Ensure height on mobile */
+        min-height: 300px;
       }
 
       /* Custom Leaflet Dark Mode tweaks */
@@ -157,23 +158,7 @@
         display: none !important;
       }
 
-      /* Network Lines Animation */
-      .flow-line {
-        stroke-dasharray: 5, 10;
-        animation: flow-dash 1s linear infinite;
-      }
-      .flow-line.heavy {
-        stroke-dasharray: 10, 5;
-        animation: flow-dash 0.5s linear infinite;
-      }
-
-      @keyframes flow-dash {
-        to {
-          stroke-dashoffset: -15;
-        }
-      }
-
-      /* Camera Scanner Effect */
+      /* Scanner Lines */
       .scanner-overlay {
         position: absolute;
         top: 0;
@@ -258,7 +243,6 @@
         transition: all 0.3s ease;
       }
 
-      /* Hidden container for Chart.js rendering */
       #chart-staging-area {
         position: absolute;
         top: -9999px;
@@ -268,22 +252,42 @@
         background: white;
       }
 
-      /* Critical Alert Modal Animation */
-      @keyframes slideDown {
-        from {
-          transform: translate(-50%, -100%);
-          opacity: 0;
-        }
-        to {
-          transform: translate(-50%, 0);
-          opacity: 1;
-        }
+      /* Loader for 3D scene initialization */
+      #scene-loader {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        transition: opacity 1s ease;
+      }
+      #landing-logo,
+      img {
+        animation: pulse-logo 2s infinite alternate;
+        width: 70px;
+        display: grid;
+        place-items: center;
+        border-radius: 15px;
       }
     </style>
   </head>
   <!-- Responsive Body Classes -->
   <body class="min-h-screen w-full flex flex-col p-2 md:p-4 gap-4 box-border">
+    <!-- 3D Background Container -->
     <div id="canvas-container"></div>
+
+    <!-- Initial Scene Loader -->
+    <div id="scene-loader">
+      <div
+        class="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"
+      ></div>
+      <div class="text-cyan-500 font-orbitron tracking-widest animate-pulse">
+        INITIALIZING NEURAL GRID...
+      </div>
+    </div>
 
     <div id="chart-staging-area">
       <canvas id="pdf-chart-pie" width="400" height="400"></canvas>
@@ -292,22 +296,29 @@
     <!-- LANDING PAGE -->
     <div
       id="landing-page"
-      class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md p-4"
+      class="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 overflow-hidden"
     >
       <div
-        class="glass-panel p-6 md:p-10 rounded-xl text-center max-w-2xl w-full border-t-4 border-t-cyan-500 overflow-y-auto max-h-[90vh]"
+        class="glass-panel p-6 md:p-10 rounded-xl text-center max-w-2xl w-full border-t-4 border-t-cyan-500 overflow-y-auto max-h-[90vh] relative z-10 transform translate-y-0"
+        id="landing-panel"
       >
-        <i
+        <div
+          class="absolute inset-0 bg-gradient-to-b from-cyan-900/10 to-transparent pointer-events-none"
+        ></div>
+
+        <!-- <i
           data-lucide="scan-eye"
-          class="w-16 h-16 md:w-20 md:h-20 text-cyan-400 mx-auto mb-6 animate-pulse"
-        ></i>
+          class="w-16 h-16 md:w-20 md:h-20 text-cyan-400 mx-auto mb-6"
+          id="landing-logo"
+        ></i> -->
+        <img src="logo.png" alt="Logo" id="landing-logo" />
         <h1
-          class="text-3xl md:text-5xl font-orbitron text-white font-bold mb-2"
+          class="text-3xl md:text-5xl font-orbitron text-white font-bold mb-2 tracking-wider"
         >
-          S-RAY
+          S-RAY <span class="text-cyan-500">v8.0</span>
         </h1>
         <p
-          class="text-cyan-400/80 tracking-widest mb-8 md:mb-10 text-xs md:text-sm"
+          class="text-cyan-400/80 tracking-[0.2em] mb-8 md:mb-10 text-xs md:text-sm font-bold"
         >
           SURVEILLANCE & GEO-SPATIAL INTELLIGENCE
         </p>
@@ -315,34 +326,44 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <button
             onclick="startSensorMode()"
-            class="group relative p-4 md:p-6 border border-gray-600 hover:border-cyan-400 rounded transition-all bg-black/40 hover:bg-cyan-900/20 text-left"
+            class="gsap-btn group relative p-4 md:p-6 border border-gray-600 rounded transition-all bg-black/40 text-left overflow-hidden"
           >
             <div
-              class="absolute top-2 right-2 text-cyan-500 opacity-0 group-hover:opacity-100 transition"
+              class="absolute inset-0 bg-cyan-900/0 group-hover:bg-cyan-900/20 transition-colors duration-300"
+            ></div>
+            <div
+              class="absolute top-2 right-2 text-cyan-500 opacity-0 group-hover:opacity-100 transition transform translate-x-2 group-hover:translate-x-0 duration-300"
             >
               <i data-lucide="arrow-right"></i>
             </div>
-            <h3 class="font-bold text-lg md:text-xl text-white mb-2">
+            <h3
+              class="font-bold text-lg md:text-xl text-white mb-2 relative z-10 group-hover:text-cyan-400 transition-colors"
+            >
               UPLINK NODE
             </h3>
-            <p class="text-[10px] md:text-xs text-gray-400">
+            <p class="text-[10px] md:text-xs text-gray-400 relative z-10">
               Connect this device as a data collection sensor.
             </p>
           </button>
 
           <button
             onclick="showLogin()"
-            class="group relative p-4 md:p-6 border border-gray-600 hover:border-red-400 rounded transition-all bg-black/40 hover:bg-red-900/20 text-left"
+            class="gsap-btn group relative p-4 md:p-6 border border-gray-600 rounded transition-all bg-black/40 text-left overflow-hidden"
           >
             <div
-              class="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition"
+              class="absolute inset-0 bg-red-900/0 group-hover:bg-red-900/20 transition-colors duration-300"
+            ></div>
+            <div
+              class="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition transform translate-x-2 group-hover:translate-x-0 duration-300"
             >
               <i data-lucide="lock"></i>
             </div>
-            <h3 class="font-bold text-lg md:text-xl text-white mb-2">
+            <h3
+              class="font-bold text-lg md:text-xl text-white mb-2 relative z-10 group-hover:text-red-400 transition-colors"
+            >
               COMMAND CENTER
             </h3>
-            <p class="text-[10px] md:text-xs text-gray-400">
+            <p class="text-[10px] md:text-xs text-gray-400 relative z-10">
               Admin access. Requires Level 5 Security Clearance.
             </p>
           </button>
@@ -353,12 +374,15 @@
     <!-- LOGIN MODAL -->
     <div
       id="login-view"
-      class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4"
+      class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
     >
-      <div class="glass-panel p-6 md:p-8 rounded-lg w-full max-w-md relative">
+      <div
+        class="glass-panel p-6 md:p-8 rounded-lg w-full max-w-md relative transform scale-95 opacity-0"
+        id="login-panel"
+      >
         <button
           onclick="cancelLogin()"
-          class="absolute top-4 right-4 text-gray-500 hover:text-white"
+          class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
         >
           <i data-lucide="x"></i>
         </button>
@@ -402,7 +426,7 @@
 
           <button
             onclick="checkLogin()"
-            class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded border border-cyan-400 shadow-[0_0_15px_cyan] mt-4 transition-all"
+            class="gsap-btn w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded border border-cyan-400 shadow-[0_0_15px_cyan] mt-4 transition-all"
           >
             AUTHENTICATE
           </button>
@@ -413,19 +437,68 @@
     <!-- SENSOR VIEW (MOBILE FOCUSED) -->
     <div
       id="sensor-view"
-      class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black"
+      class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-colors duration-500"
     >
+      <button
+        onclick="exitSensorMode()"
+        class="absolute top-6 right-6 p-2 rounded-full border border-gray-600 hover:border-red-500 hover:bg-red-900/20 hover:text-red-500 text-gray-400 transition-all z-50"
+        title="Exit to Main Menu"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          data-lucide="x"
+          class="lucide lucide-x w-6 h-6"
+        >
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
       <div
-        class="glass-panel p-8 rounded-full w-64 h-64 flex flex-col items-center justify-center border-4 border-cyan-500 relative animate-pulse"
+        class="glass-panel p-8 rounded-full w-64 h-64 flex flex-col items-center justify-center border-4 border-cyan-500 relative transition-all duration-300"
+        id="sensor-circle"
       >
         <div
           class="absolute inset-0 rounded-full border border-cyan-200 opacity-30 animate-ping"
+          id="sensor-ping"
         ></div>
-        <i data-lucide="radio" class="w-12 h-12 text-cyan-400 mb-2"></i>
-        <h2 class="text-xl font-bold text-white">ACTIVE</h2>
-        <p class="text-xs text-cyan-300 font-mono mt-2">SENDING PACKETS</p>
+        <i
+          data-lucide="radio"
+          class="w-12 h-12 text-cyan-400 mb-2"
+          id="sensor-icon"
+        ></i>
+        <h2 class="text-xl font-bold text-white" id="sensor-status-text">
+          ACTIVE
+        </h2>
+        <p class="text-xs text-cyan-300 font-mono mt-2" id="sensor-sub-text">
+          SENDING PACKETS
+        </p>
       </div>
-      <div class="mt-8 text-center">
+
+      <!-- User Alert Box -->
+      <div id="user-alert-container" class="hidden mt-6 w-full max-w-sm px-4">
+        <div
+          class="bg-red-900/80 border border-red-500 rounded-lg p-4 flex flex-col items-center text-center animate-pulse shadow-[0_0_30px_rgba(255,0,0,0.5)]"
+        >
+          <i data-lucide="triangle-alert" class="text-white w-10 h-10 mb-2"></i>
+          <h3 class="text-white font-bold text-lg mb-1 font-orbitron">
+            SAFETY ALERT
+          </h3>
+          <p class="text-white text-sm font-bold leading-relaxed">
+            Let's grab a seat to settle down safely to overcome the crowd
+            running situation.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-8 text-center" id="sensor-stats">
         <p class="text-gray-500 text-xs font-mono mb-2">SESSION ID</p>
         <p
           id="displaySessionId"
@@ -437,6 +510,12 @@
         <p class="text-gray-600 text-[10px]">
           LAST PING: <span id="lastPingTime">--:--:--</span>
         </p>
+        <button
+          onclick="exitSensorMode()"
+          class="mt-8 text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900/20"
+        >
+          ABORT CONNECTION
+        </button>
       </div>
     </div>
 
@@ -517,7 +596,7 @@
           </button>
           <button
             onclick="submitSetup()"
-            class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold text-sm"
+            class="gsap-btn px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold text-sm"
           >
             INITIALIZE SECTOR
           </button>
@@ -525,10 +604,62 @@
       </div>
     </div>
 
-    <!-- ALERT BOX -->
+    <!-- PROFILE EDIT MODAL -->
+    <div
+      id="profileEditModal"
+      class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm items-center justify-center p-4"
+    >
+      <div class="glass-panel w-full max-w-md p-6 rounded-lg relative">
+        <button
+          onclick="closeProfileEdit()"
+          class="absolute top-4 right-4 text-gray-400 hover:text-white"
+        >
+          <i data-lucide="x"></i>
+        </button>
+        <h3
+          class="text-xl font-orbitron text-white mb-6 border-b border-gray-700 pb-2"
+        >
+          EDIT PROFILE
+        </h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs text-cyan-500 mb-1"
+              >COMMANDER NAME</label
+            >
+            <input
+              type="text"
+              id="edit-admin-name"
+              class="w-full cyber-input rounded"
+              placeholder="Enter Name"
+            />
+          </div>
+          <div>
+            <label class="block text-xs text-cyan-500 mb-1">AVATAR URL</label>
+            <input
+              type="text"
+              id="edit-admin-avatar"
+              class="w-full cyber-input rounded"
+              placeholder="https://..."
+            />
+            <p class="text-[10px] text-gray-500 mt-1">
+              Use DiceBear URL for avatars
+            </p>
+          </div>
+          <button
+            onclick="saveProfile()"
+            class="gsap-btn w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded mt-4"
+          >
+            SAVE CHANGES
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GLOBAL ALERT BOX (ADMIN) -->
     <div
       id="critical-alert-box"
-      class="hidden fixed top-4 md:top-8 left-1/2 -translate-x-1/2 z-50 bg-red-950/90 border-2 border-red-500 text-white px-6 py-4 rounded-lg shadow-[0_0_50px_rgba(255,0,0,0.6)] items-center gap-4 animate-[slideDown_0.5s_ease-out] w-[90%] md:w-auto"
+      class="hidden fixed top-4 md:top-8 left-1/2 -translate-x-1/2 z-50 bg-red-950/90 border-2 border-red-500 text-white px-6 py-4 rounded-lg shadow-[0_0_50px_rgba(255,0,0,0.6)] items-center gap-4 w-[90%] md:w-auto transform -translate-y-20 transition-transform duration-500"
     >
       <div class="bg-red-500 p-2 rounded-full animate-pulse shrink-0">
         <i data-lucide="siren" class="w-6 h-6 md:w-8 md:h-8 text-white"></i>
@@ -537,10 +668,13 @@
         <h2
           class="font-orbitron font-bold text-lg md:text-xl tracking-widest text-red-100"
         >
-          CRITICAL CONGESTION DETECTED
+          CRITICAL ALERT
         </h2>
-        <p id="critical-alert-text" class="font-mono text-xs text-red-300">
-          DISPATCHING AUTOMATED ALERT TO STAKEHOLDERS...
+        <p
+          id="critical-alert-text"
+          class="font-mono text-xs text-red-300 font-bold"
+        >
+          <!-- Text injected via JS -->
         </p>
       </div>
     </div>
@@ -549,7 +683,7 @@
     <!-- Responsive Grid: Stacks on mobile (grid-cols-1), 12 cols on desktop -->
     <div
       id="dashboard-view"
-      class="hidden w-full flex-col relative z-10 lg:h-full lg:overflow-hidden"
+      class="hidden w-full flex-col relative z-10 lg:h-full lg:overflow-hidden opacity-0"
     >
       <div
         class="main-grid flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 h-auto lg:h-full relative pb-10 lg:pb-0"
@@ -559,41 +693,64 @@
           class="col-span-1 lg:col-span-3 flex flex-col gap-4 order-2 lg:order-1"
         >
           <div
-            class="glass-panel h-20 md:h-24 rounded-lg flex items-center justify-center tech-border relative overflow-hidden group shrink-0"
+            class="glass-panel h-20 md:h-24 rounded-lg flex items-center justify-center tech-border relative overflow-hidden group shrink-0 dashboard-item"
           >
             <div
               class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
             ></div>
             <div class="flex items-center gap-2">
-              <i
-                data-lucide="globe"
-                class="text-cyan-400 w-6 h-6 md:w-8 md:h-8"
-              ></i>
+              <img src="logo.png" alt="logo" class="w-8 h-8 md:w-10 md:h-10" />
               <span class="tech-text font-bold text-lg md:text-xl text-white"
-                >S-RAY</span
+                >- RAY</span
               >
             </div>
           </div>
 
           <div
-            class="glass-panel flex-1 rounded-lg p-4 md:p-6 flex flex-col items-center relative overflow-hidden min-h-[300px]"
+            class="glass-panel flex-1 rounded-lg p-4 md:p-6 flex flex-col items-center relative overflow-hidden min-h-[300px] dashboard-item"
           >
+            <!-- Profile Section -->
             <div
-              class="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-cyan-400 p-1 mb-4 relative"
+              class="relative group cursor-pointer mb-4"
+              onclick="openProfileEdit()"
+              title="Edit Profile"
             >
-              <img
-                src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"
-                alt="User"
-                class="w-full h-full rounded-full bg-slate-800"
-              />
+              <div
+                class="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-cyan-400 p-1 relative overflow-hidden"
+              >
+                <img
+                  id="admin-avatar"
+                  src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix"
+                  alt="User"
+                  class="w-full h-full rounded-full bg-slate-800 object-cover"
+                />
+                <!-- Hover Edit Overlay -->
+                <div
+                  class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
+                >
+                  <i data-lucide="pencil" class="text-white w-6 h-6"></i>
+                </div>
+              </div>
               <div
                 class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse"
               ></div>
             </div>
 
-            <h2 class="text-xl md:text-2xl font-bold tech-text text-white">
-              COMMANDER
-            </h2>
+            <div class="flex items-center gap-2">
+              <h2
+                id="admin-name"
+                class="text-xl md:text-2xl font-bold tech-text text-white"
+              >
+                COMMANDER
+              </h2>
+              <button
+                onclick="openProfileEdit()"
+                class="text-gray-500 hover:text-cyan-400 transition"
+              >
+                <i data-lucide="pencil" class="w-3 h-3"></i>
+              </button>
+            </div>
+
             <p class="text-cyan-400/70 text-xs md:text-sm tracking-wider mb-6">
               CLEARANCE: LEVEL 5
             </p>
@@ -628,17 +785,23 @@
             <div class="mt-auto w-full pt-4 space-y-2">
               <button
                 onclick="openSetupModal()"
-                class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-300 p-2 rounded flex items-center justify-center gap-2 transition-all text-xs"
+                class="gsap-btn w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-300 p-2 rounded flex items-center justify-center gap-2 transition-all text-xs"
               >
                 <i data-lucide="plus-circle" class="w-3 h-3"></i>
                 ADD SECTOR
               </button>
               <button
                 onclick="generatePDFReport()"
-                class="w-full bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500 text-cyan-300 p-3 rounded flex items-center justify-center gap-2 transition-all text-sm"
+                class="gsap-btn w-full bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500 text-cyan-300 p-3 rounded flex items-center justify-center gap-2 transition-all text-sm"
               >
                 <i data-lucide="file-down" class="w-4 h-4"></i>
                 MISSION REPORT
+              </button>
+              <button
+                onclick="exitAdminMode()"
+                class="gsap-btn w-full border border-red-500/50 text-red-500 p-2 rounded flex items-center justify-center gap-2 transition-all text-xs hover:bg-red-950/30"
+              >
+                LOGOUT
               </button>
             </div>
           </div>
@@ -649,7 +812,7 @@
           class="col-span-1 lg:col-span-6 flex flex-col order-1 lg:order-2 h-[500px] lg:h-auto"
         >
           <div
-            class="glass-panel flex-1 rounded-lg p-1 relative flex flex-col h-full"
+            class="glass-panel flex-1 rounded-lg p-1 relative flex flex-col h-full dashboard-item"
           >
             <div
               class="h-10 flex justify-between items-center px-4 bg-black/20 rounded-t mb-1 shrink-0"
@@ -691,7 +854,7 @@
                 <button
                   onclick="initSystem()"
                   id="init-btn"
-                  class="px-6 py-2 md:px-8 md:py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold transition-all border border-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.5)] text-sm md:text-base"
+                  class="gsap-btn px-6 py-2 md:px-8 md:py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold transition-all border border-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.5)] text-sm md:text-base"
                 >
                   ESTABLISH LINK
                 </button>
@@ -730,7 +893,7 @@
             >
               <button
                 onclick="toggleNetworkLayer()"
-                class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition relative"
+                class="gsap-btn p-2 hover:bg-white/10 rounded-full text-cyan-400 transition relative"
                 title="Toggle Network Grid"
               >
                 <i data-lucide="wifi" class="w-5 h-5"></i>
@@ -741,14 +904,14 @@
               </button>
               <button
                 onclick="panToCenter()"
-                class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
+                class="gsap-btn p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
                 title="Re-Center Drone"
               >
                 <i data-lucide="crosshair" class="w-5 h-5"></i>
               </button>
               <button
                 onclick="spawnWave()"
-                class="p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
+                class="gsap-btn p-2 hover:bg-white/10 rounded-full text-cyan-400 transition"
                 title="Simulate Crowd Surge"
               >
                 <i data-lucide="users" class="w-5 h-5"></i>
@@ -761,7 +924,9 @@
         <div
           class="col-span-1 lg:col-span-3 flex flex-col gap-4 order-3 min-h-[300px]"
         >
-          <div class="glass-panel flex-1 rounded-lg p-4 md:p-6 flex flex-col">
+          <div
+            class="glass-panel flex-1 rounded-lg p-4 md:p-6 flex flex-col dashboard-item"
+          >
             <h3
               class="text-lg md:text-xl tech-text text-cyan-400 mb-6 border-b border-cyan-500/30 pb-2"
             >
@@ -873,7 +1038,7 @@
 
           <button
             onclick="toggleLockdown()"
-            class="glass-panel h-20 rounded-lg p-4 flex items-center justify-between group hover:bg-red-900/20 transition-colors cursor-pointer border-red-500/20 hover:border-red-500/50 w-full text-left"
+            class="gsap-btn glass-panel h-20 rounded-lg p-4 flex items-center justify-between group hover:bg-red-900/20 transition-colors cursor-pointer border-red-500/20 hover:border-red-500/50 w-full text-left dashboard-item"
           >
             <div>
               <h4 class="text-red-400 font-bold text-sm tracking-wider">
@@ -895,48 +1060,113 @@
       // Initialize Lucide Icons
       lucide.createIcons();
 
-      // --- 3D Background (Three.js) ---
+      // ============================================
+      //  THREE.JS BACKGROUND - CYBER CORE
+      // ============================================
+      let scene, camera, renderer;
+      let particlesMesh, globe, core, gridHelper;
+      let mouseX = 0,
+        mouseY = 0;
+
       const initThreeJS = () => {
         const container = document.getElementById("canvas-container");
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(
+        scene = new THREE.Scene();
+        // Fog to blend items into the dark background
+        scene.fog = new THREE.FogExp2(0x050510, 0.05);
+
+        camera = new THREE.PerspectiveCamera(
           75,
           window.innerWidth / window.innerHeight,
           0.1,
           1000
         );
-        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        camera.position.z = 5;
 
+        renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        // Particles
-        const geometry = new THREE.BufferGeometry();
-        const particlesCount = 700;
+        // 1. Particle Starfield
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 1500;
         const posArray = new Float32Array(particlesCount * 3);
 
         for (let i = 0; i < particlesCount * 3; i++) {
-          posArray[i] = (Math.random() - 0.5) * 15; // Spread
+          posArray[i] = (Math.random() - 0.5) * 30; // Wider spread
         }
 
-        geometry.setAttribute(
+        particlesGeometry.setAttribute(
           "position",
           new THREE.BufferAttribute(posArray, 3)
         );
-        const material = new THREE.PointsMaterial({
+        const particlesMaterial = new THREE.PointsMaterial({
           size: 0.02,
           color: 0x00f0ff,
+          transparent: true,
+          opacity: 0.8,
         });
-        const particlesMesh = new THREE.Points(geometry, material);
+        particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
         scene.add(particlesMesh);
 
-        camera.position.z = 3;
+        // 2. Wireframe Globe (The Core)
+        const globeGeo = new THREE.IcosahedronGeometry(2.5, 1);
+        const globeMat = new THREE.MeshBasicMaterial({
+          color: 0x0044aa,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.15,
+        });
+        globe = new THREE.Mesh(globeGeo, globeMat);
+        scene.add(globe);
 
-        // Animation
+        // 3. Inner Core
+        const coreGeo = new THREE.IcosahedronGeometry(1.2, 0);
+        const coreMat = new THREE.MeshBasicMaterial({
+          color: 0x00f0ff,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.2,
+        });
+        core = new THREE.Mesh(coreGeo, coreMat);
+        scene.add(core);
+
+        // 4. Moving Grid Floor
+        const gridSize = 40;
+        const gridDivisions = 40;
+        gridHelper = new THREE.GridHelper(
+          gridSize,
+          gridDivisions,
+          0x00f0ff,
+          0x001133
+        );
+        gridHelper.position.y = -3;
+        scene.add(gridHelper);
+
+        // Event Listener for Mouse Parallax
+        document.addEventListener("mousemove", (event) => {
+          mouseX = event.clientX / window.innerWidth - 0.5;
+          mouseY = event.clientY / window.innerHeight - 0.5;
+        });
+
+        // Animation Loop
         const animate = () => {
           requestAnimationFrame(animate);
-          particlesMesh.rotation.y += 0.001;
-          particlesMesh.rotation.x += 0.0005;
+
+          // Rotations
+          particlesMesh.rotation.y += 0.0005;
+          globe.rotation.y += 0.001;
+          globe.rotation.x += 0.0005;
+          core.rotation.y -= 0.003;
+
+          // Grid movement effect (infinite scroll illusion)
+          gridHelper.position.z = (Date.now() * 0.001) % 1;
+
+          // Parallax Camera
+          camera.position.x += (mouseX * 1 - camera.position.x) * 0.05;
+          camera.position.y += (-mouseY * 1 - camera.position.y) * 0.05;
+          camera.lookAt(scene.position);
+
           renderer.render(scene, camera);
         };
         animate();
@@ -946,9 +1176,110 @@
           camera.updateProjectionMatrix();
           renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
+        // Remove Loader
+        setTimeout(() => {
+          const loader = document.getElementById("scene-loader");
+          loader.style.opacity = "0";
+          setTimeout(() => loader.remove(), 1000);
+
+          // Trigger landing page entry
+          gsap.from("#landing-panel", {
+            duration: 1.5,
+            y: 50,
+            opacity: 0,
+            ease: "power3.out",
+            delay: 0.5,
+          });
+          gsap.from("#landing-logo", {
+            duration: 1,
+            scale: 0,
+            rotation: 180,
+            ease: "back.out(1.7)",
+            delay: 1,
+          });
+        }, 1500);
       };
 
       initThreeJS();
+
+      // ============================================
+      //  GSAP INTERACTIVITY & TRANSITIONS
+      // ============================================
+
+      // Button Hover Effects
+      document.querySelectorAll(".gsap-btn").forEach((btn) => {
+        btn.addEventListener("mouseenter", () => {
+          gsap.to(btn, { scale: 1.02, duration: 0.3, ease: "power2.out" });
+        });
+        btn.addEventListener("mouseleave", () => {
+          gsap.to(btn, { scale: 1, duration: 0.3, ease: "power2.out" });
+        });
+      });
+
+      // Advanced View Transition Function
+      function transitionToView(hideIds, showId) {
+        const tl = gsap.timeline();
+
+        // 1. Exit Animation (Glitch Out)
+        hideIds.forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el.classList.contains("hidden")) {
+            tl.to(
+              el,
+              {
+                duration: 0.4,
+                opacity: 0,
+                scale: 0.9,
+                filter: "blur(10px)",
+                ease: "power2.in",
+                onComplete: () => el.classList.add("hidden"),
+              },
+              "<"
+            ); // Run concurrently
+          }
+        });
+
+        // 2. Prep New View
+        const newView = document.getElementById(showId);
+
+        tl.add(() => {
+          newView.classList.remove("hidden");
+          // If dashboard, stagger items
+          if (showId === "dashboard-view") {
+            newView.style.display = "flex";
+          }
+        });
+
+        // 3. Entry Animation (Boot Up)
+        tl.fromTo(
+          newView,
+          { opacity: 0, scale: 1.1, filter: "blur(20px)" },
+          {
+            opacity: 1,
+            scale: 1,
+            filter: "blur(0px)",
+            duration: 0.8,
+            ease: "power2.out",
+          }
+        );
+
+        // Specific stagger for dashboard items if entering dashboard
+        if (showId === "dashboard-view") {
+          tl.fromTo(
+            ".dashboard-item",
+            { y: 20, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              duration: 0.5,
+              stagger: 0.1,
+              ease: "power2.out",
+            },
+            "-=0.5"
+          );
+        }
+      }
 
       // --- CLOCK ---
       setInterval(() => {
@@ -960,7 +1291,7 @@
       }, 1000);
 
       // ============================================
-      //          CROWDSENSE LOGIC INTEGRATION
+      //        CROWDSENSE LOGIC INTEGRATION
       // ============================================
 
       const GOOGLE_SCRIPT_URL =
@@ -973,16 +1304,38 @@
         markers = [],
         adminMarker;
       let networkLayerVisible = false;
+      let userAlertPoller;
 
       // --- Auth Logic ---
       function showLogin() {
-        document.getElementById("landing-page").classList.add("hidden");
-        document.getElementById("login-view").classList.remove("hidden");
+        const landing = document.getElementById("landing-page");
+        const login = document.getElementById("login-view");
+
+        // Hide landing content temporarily
+        gsap.to("#landing-panel", { opacity: 0, scale: 0.95, duration: 0.3 });
+
+        login.classList.remove("hidden");
+        gsap.to("#login-panel", {
+          opacity: 1,
+          scale: 1,
+          duration: 0.4,
+          ease: "back.out(1.2)",
+        });
       }
 
       function cancelLogin() {
-        document.getElementById("login-view").classList.add("hidden");
-        document.getElementById("landing-page").classList.remove("hidden");
+        const login = document.getElementById("login-view");
+        gsap.to("#login-panel", {
+          opacity: 0,
+          scale: 0.95,
+          duration: 0.3,
+          onComplete: () => {
+            login.classList.add("hidden");
+            // Reveal landing again
+            gsap.to("#landing-panel", { opacity: 1, scale: 1, duration: 0.4 });
+          },
+        });
+
         // Clear inputs
         document.getElementById("username").value = "";
         document.getElementById("password").value = "";
@@ -995,20 +1348,34 @@
         const errorMsg = document.getElementById("login-error");
 
         if (user === "admin" && pass === "1223334444") {
-          // Success: Go straight to Dashboard
+          // Success: Transition to Dashboard
           document.getElementById("login-view").classList.add("hidden");
-          startOwnerMode(); // This initializes the dashboard view
+          startOwnerMode();
         } else {
           errorMsg.classList.remove("hidden");
+          gsap.from(errorMsg, { x: 10, duration: 0.1, repeat: 3, yoyo: true }); // Shake effect
         }
       }
 
       // --- Navigation ---
       function startSensorMode() {
-        document.getElementById("landing-page").style.display = "none";
-        document.getElementById("sensor-view").classList.remove("hidden");
+        transitionToView(["landing-page"], "sensor-view");
         document.getElementById("displaySessionId").innerText =
           sessionId.substring(0, 8);
+
+        // Animate Sensor UI
+        gsap.from("#sensor-circle", {
+          scale: 0,
+          duration: 1,
+          ease: "elastic.out(1, 0.5)",
+          delay: 0.5,
+        });
+        gsap.from("#sensor-stats", {
+          opacity: 0,
+          y: 20,
+          duration: 0.8,
+          delay: 0.8,
+        });
 
         if ("geolocation" in navigator) {
           navigator.geolocation.getCurrentPosition(sendPing, handleError);
@@ -1018,23 +1385,82 @@
         } else {
           alert("GPS hardware not detected.");
         }
+
+        // --- START USER ALERT MONITORING ---
+        // Checks local storage every 2 seconds to see if admin triggered lockdown
+        if (userAlertPoller) clearInterval(userAlertPoller);
+        userAlertPoller = setInterval(() => {
+          const isLockdown = localStorage.getItem("sray_lockdown") === "true";
+          const alertContainer = document.getElementById(
+            "user-alert-container"
+          );
+          const sensorCircle = document.getElementById("sensor-circle");
+          const sensorIcon = document.getElementById("sensor-icon");
+
+          if (isLockdown && alertContainer.classList.contains("hidden")) {
+            // Trigger Alert View
+            alertContainer.classList.remove("hidden");
+            gsap.from(alertContainer, { y: 20, opacity: 0, duration: 0.5 });
+
+            // Change Circle to Danger Mode
+            sensorCircle.classList.replace("border-cyan-500", "border-red-500");
+            document
+              .getElementById("sensor-ping")
+              .classList.replace("border-cyan-200", "border-red-200");
+            sensorIcon.classList.replace("text-cyan-400", "text-red-500");
+            document.getElementById("sensor-status-text").innerText = "DANGER";
+            document
+              .getElementById("sensor-status-text")
+              .classList.add("text-red-500");
+            document.getElementById("sensor-sub-text").innerText =
+              "CROWD SURGE DETECTED";
+          } else if (
+            !isLockdown &&
+            !alertContainer.classList.contains("hidden")
+          ) {
+            // Reset View
+            alertContainer.classList.add("hidden");
+
+            sensorCircle.classList.replace("border-red-500", "border-cyan-500");
+            document
+              .getElementById("sensor-ping")
+              .classList.replace("border-red-200", "border-cyan-200");
+            sensorIcon.classList.replace("text-red-500", "text-cyan-400");
+            document.getElementById("sensor-status-text").innerText = "ACTIVE";
+            document
+              .getElementById("sensor-status-text")
+              .classList.remove("text-red-500");
+            document.getElementById("sensor-sub-text").innerText =
+              "SENDING PACKETS";
+          }
+        }, 2000);
       }
 
-      function startOwnerMode() {
-        // Ensure landing page is hidden
-        document.getElementById("landing-page").classList.add("hidden");
-        document.getElementById("landing-page").style.display = "none";
+      function exitSensorMode() {
+        if (userAlertPoller) clearInterval(userAlertPoller);
+        transitionToView(["sensor-view"], "landing-page");
+        gsap.from("#landing-panel", { y: 20, opacity: 0, delay: 0.5 });
+      }
 
-        const dashboard = document.getElementById("dashboard-view");
-        dashboard.classList.remove("hidden");
-        dashboard.style.display = "flex";
+      function exitSensorMode() {
+        if (userAlertPoller) clearInterval(userAlertPoller);
+        transitionToView(["sensor-view"], "landing-page");
+        gsap.from("#landing-panel", { y: 20, opacity: 0, delay: 0.5 });
+      }
+      function startOwnerMode() {
+        transitionToView(["landing-page"], "dashboard-view");
+        loadProfile(); // Load admin profile settings
 
         // Needed for Leaflet to size correctly after being hidden
         setTimeout(initMap, 200);
 
-        // Wait for manual init or auto init
-        // fetchDashboardData();
+        // Initialize Admin features
         locateAdmin();
+      }
+
+      function exitAdminMode() {
+        transitionToView(["dashboard-view"], "landing-page");
+        gsap.from("#landing-panel", { y: 20, opacity: 0, delay: 0.5 });
       }
 
       function locateAdmin() {
@@ -1043,21 +1469,18 @@
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
 
-            // Remove old admin marker
             if (adminMarker) map.removeLayer(adminMarker);
 
-            // Add Bold Blue Dot for Ownself
             adminMarker = L.circleMarker([lat, lng], {
-              color: "#0044ff", // Darker blue border
-              fillColor: "#0088ff", // Bright blue fill
+              color: "#0044ff",
+              fillColor: "#0088ff",
               fillOpacity: 1,
-              radius: 8, // Larger size
+              radius: 8,
               weight: 3,
             }).addTo(map);
 
             adminMarker.bindPopup("<b>ADMINISTRATOR</b><br>LIVE LOCATION");
 
-            // Only pan once initially so we don't annoy user
             if (!map.getCenter().lat) map.setView([lat, lng], 16);
           });
         }
@@ -1067,6 +1490,11 @@
         const modal = document.getElementById("setupModal");
         modal.classList.remove("hidden");
         modal.classList.add("flex");
+        gsap.fromTo(
+          modal.firstElementChild,
+          { scale: 0.9, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.3 }
+        );
 
         if ("geolocation" in navigator) {
           document.getElementById("zoneLat").value = "";
@@ -1082,8 +1510,15 @@
 
       function closeSetupModal() {
         const modal = document.getElementById("setupModal");
-        modal.classList.add("hidden");
-        modal.classList.remove("flex");
+        gsap.to(modal.firstElementChild, {
+          scale: 0.9,
+          opacity: 0,
+          duration: 0.2,
+          onComplete: () => {
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+          },
+        });
       }
 
       function submitSetup() {
@@ -1113,6 +1548,62 @@
             alert("SECTOR CONFIGURED: " + d.message);
             closeSetupModal();
           });
+      }
+
+      // --- ADMIN PROFILE EDIT LOGIC ---
+      function openProfileEdit() {
+        const modal = document.getElementById("profileEditModal");
+        const currentName = document.getElementById("admin-name").innerText;
+        const currentAvatar = document.getElementById("admin-avatar").src;
+
+        document.getElementById("edit-admin-name").value = currentName;
+        document.getElementById("edit-admin-avatar").value = currentAvatar;
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        gsap.fromTo(
+          modal.firstElementChild,
+          { scale: 0.9, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.3 }
+        );
+      }
+
+      function closeProfileEdit() {
+        const modal = document.getElementById("profileEditModal");
+        gsap.to(modal.firstElementChild, {
+          scale: 0.9,
+          opacity: 0,
+          duration: 0.2,
+          onComplete: () => {
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+          },
+        });
+      }
+
+      function saveProfile() {
+        const newName = document.getElementById("edit-admin-name").value;
+        const newAvatar = document.getElementById("edit-admin-avatar").value;
+
+        if (newName) {
+          localStorage.setItem("sray_admin_name", newName);
+          document.getElementById("admin-name").innerText = newName;
+        }
+        if (newAvatar) {
+          localStorage.setItem("sray_admin_avatar", newAvatar);
+          document.getElementById("admin-avatar").src = newAvatar;
+        }
+        closeProfileEdit();
+      }
+
+      function loadProfile() {
+        const savedName = localStorage.getItem("sray_admin_name");
+        const savedAvatar = localStorage.getItem("sray_admin_avatar");
+
+        if (savedName)
+          document.getElementById("admin-name").innerText = savedName;
+        if (savedAvatar)
+          document.getElementById("admin-avatar").src = savedAvatar;
       }
 
       // --- Sensor Logic ---
@@ -1145,9 +1636,16 @@
         btn.style.display = "none";
         loadingText.classList.remove("hidden");
 
-        // Fake initialization delay
+        // Fake initialization delay with GSAP
         setTimeout(() => {
-          placeholder.style.display = "none";
+          gsap.to(placeholder, {
+            opacity: 0,
+            duration: 0.5,
+            onComplete: () => {
+              placeholder.style.display = "none";
+            },
+          });
+
           document.getElementById("model-status").innerText = "ACTIVE";
           document.getElementById("model-status").className =
             "text-green-400 animate-pulse";
@@ -1164,7 +1662,7 @@
           map.invalidateSize();
           return;
         }
-        // Default View (Vasai-Virar approx based on context, or default generic)
+        // Default View
         map = L.map("map", {
           zoomControl: false,
           attributionControl: false,
@@ -1186,7 +1684,6 @@
             e.latlng.lng.toFixed(4);
         });
 
-        // Ensure map resizes correctly on window resize
         window.addEventListener("resize", () => {
           map.invalidateSize();
         });
@@ -1207,12 +1704,17 @@
       }
 
       function updateUI(data) {
-        // Update Counts
         const total = data.totalActiveSensors || 0;
-        const counter = document.getElementById("total-count");
-        counter.innerText = total;
 
-        // Update Network Load Bar (Simulated based on count)
+        // GSAP counter animation
+        const counter = document.getElementById("total-count");
+        gsap.to(counter, {
+          innerText: total,
+          duration: 1,
+          snap: { innerText: 1 },
+          ease: "power1.inOut",
+        });
+
         const loadPct = Math.min(total * 2, 100);
         document.getElementById("network-load-bar").style.width = loadPct + "%";
         document.getElementById("network-load-val").innerText =
@@ -1239,7 +1741,6 @@
               logAlert(area);
             }
 
-            // 1. Draw The Zone Boundary (Aggregate Circle)
             const circle = L.circle([area.lat, area.lng], {
               color: areaColor,
               fillColor: areaColor,
@@ -1250,25 +1751,22 @@
             }).addTo(map);
 
             circle.bindPopup(`
-                    <div class="p-1">
-                        <strong class="font-orbitron block border-b border-cyan-500/50 mb-1">${
-                          area.name
-                        }</strong>
-                        <div class="text-xs font-mono">
-                           COUNT: ${area.currentCount}/${area.limit}<br>
-                           STATUS: ${area.status.toUpperCase()}
-                        </div>
-                    </div>
-                `);
+                  <div class="p-1">
+                      <strong class="font-orbitron block border-b border-cyan-500/50 mb-1">${
+                        area.name
+                      }</strong>
+                      <div class="text-xs font-mono">
+                         COUNT: ${area.currentCount}/${area.limit}<br>
+                         STATUS: ${area.status.toUpperCase()}
+                      </div>
+                  </div>
+              `);
             circles.push(circle);
 
-            // 2. Draw "People" Dots (Visualization of Active Count)
             for (let i = 0; i < area.currentCount; i++) {
-              // Random point within circle math
               const r = area.radius * Math.sqrt(Math.random());
               const theta = Math.random() * 2 * Math.PI;
 
-              // Convert meters to lat/lng degrees (Approx)
               const earthRadius = 6378137;
               const dLat =
                 ((r * Math.cos(theta)) / earthRadius) * (180 / Math.PI);
@@ -1282,16 +1780,15 @@
 
               const dot = L.circleMarker([dotLat, dotLng], {
                 color: "transparent",
-                fillColor: "#80eaff", // Light Blue Dot
+                fillColor: "#80eaff",
                 fillOpacity: 0.8,
-                radius: 2, // Small dot size
+                radius: 2,
               }).addTo(map);
               markers.push(dot);
             }
           });
         }
 
-        // Update Density Bar & Text
         const bar = document.getElementById("density-bar-live");
         const densityText = document.getElementById("current-density");
 
@@ -1330,15 +1827,25 @@
           });
         }
 
-        // Trigger red UI
+        // Trigger red UI (ADMIN ONLY)
         const alertBox = document.getElementById("critical-alert-box");
+        const alertText = document.getElementById("critical-alert-text");
+
+        // Use custom admin text
+        alertText.innerText =
+          "ALERT: Property is getting crowded. Send security immediately to handle them.";
+
         alertBox.classList.remove("hidden");
-        alertBox.classList.add("flex");
+        gsap.to(alertBox, { y: 0, duration: 0.5, ease: "back.out" });
+
         document.body.classList.add("critical-mode");
 
         setTimeout(() => {
-          alertBox.classList.add("hidden");
-          alertBox.classList.remove("flex");
+          gsap.to(alertBox, {
+            y: -100,
+            duration: 0.5,
+            onComplete: () => alertBox.classList.add("hidden"),
+          });
           document.body.classList.remove("critical-mode");
         }, 5000);
       }
@@ -1354,7 +1861,7 @@
         );
       }
 
-      // --- Helper Functions from HTML calls ---
+      // --- Helper Functions ---
 
       function toggleNetworkLayer() {
         networkLayerVisible = !networkLayerVisible;
@@ -1365,8 +1872,7 @@
           status.innerText = "VISUALIZING";
           status.classList.replace("text-purple-400", "text-cyan-400");
           indicator.classList.remove("hidden");
-          // Add a visual grid overlay
-          // (In a real app, this would be a specific Leaflet layer group)
+          gsap.from(indicator, { scale: 0, duration: 0.3 });
           alert("Network Grid Overlay Enabled");
         } else {
           status.innerText = "INACTIVE";
@@ -1377,7 +1883,6 @@
 
       function panToCenter() {
         if (map) {
-          // Try to find a circle center or default
           if (circles.length > 0) {
             map.setView(circles[0].getLatLng(), 16);
           } else {
@@ -1408,7 +1913,6 @@
           });
         }
 
-        // Visual feedback
         const log = document.getElementById("detection-log");
         const p = document.createElement("p");
         p.className = "text-purple-400 border-l-2 border-purple-500 pl-2 mb-1";
@@ -1417,30 +1921,43 @@
       }
 
       function toggleLockdown() {
-        document.body.classList.toggle("critical-mode");
-        alert("SECTOR LOCKDOWN PROTOCOLS INITIATED");
+        const currentState = localStorage.getItem("sray_lockdown") === "true";
+        const newState = !currentState;
+        localStorage.setItem("sray_lockdown", newState);
+
+        if (newState) {
+          document.body.classList.add("critical-mode");
+          gsap.to("body", {
+            backgroundColor: "#300000",
+            duration: 0.1,
+            yoyo: true,
+            repeat: 3,
+            onComplete: () => gsap.set("body", { backgroundColor: "#050510" }),
+          });
+          alert("SECTOR LOCKDOWN INITIATED - USER ALERTS DISPATCHED");
+        } else {
+          document.body.classList.remove("critical-mode");
+          alert("LOCKDOWN LIFTED");
+        }
       }
 
       function generatePDFReport() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // --- VISUAL IDENTITY CONFIG ---
         const colors = {
-          bg: [5, 5, 16], // #050510 (Dark Background)
-          cyan: [0, 240, 255], // #00f0ff (Accent)
-          red: [255, 0, 0], // Alert
+          bg: [5, 5, 16],
+          cyan: [0, 240, 255],
+          red: [255, 0, 0],
           white: [255, 255, 255],
-          panel: [16, 20, 30], // Glass panel color
-          grid: [30, 40, 60], // Map Grid
+          panel: [16, 20, 30],
+          grid: [30, 40, 60],
           textMuted: [150, 150, 150],
         };
 
-        // 1. Background (Dark Mode)
         doc.setFillColor(...colors.bg);
         doc.rect(0, 0, 210, 297, "F");
 
-        // 2. Header
         doc.setFont("courier", "bold");
         doc.setFontSize(24);
         doc.setTextColor(...colors.cyan);
@@ -1450,7 +1967,6 @@
         doc.setTextColor(...colors.white);
         doc.text("GEO-SPATIAL INTELLIGENCE REPORT", 15, 26);
 
-        // 3. Classified Stamp
         doc.setDrawColor(...colors.red);
         doc.setLineWidth(0.5);
         doc.rect(150, 10, 45, 12);
@@ -1458,12 +1974,10 @@
         doc.setFontSize(8);
         doc.text("CLASSIFIED // LEVEL 5", 152, 18);
 
-        // 4. Divider Line
         doc.setDrawColor(...colors.cyan);
         doc.setLineWidth(0.5);
         doc.line(15, 35, 195, 35);
 
-        // 5. Metadata Grid
         doc.setFont("courier", "normal");
         doc.setFontSize(9);
         doc.setTextColor(...colors.textMuted);
@@ -1473,19 +1987,15 @@
         doc.text(`AGENT ID  : COMMANDER (ADMIN)`, 15, 50);
         doc.text(`SECTOR    : 09 - NEW DELHI`, 15, 55);
 
-        // 6. Stats Panel (Visual Box)
         doc.setFillColor(...colors.panel);
         doc.setDrawColor(...colors.cyan);
-        doc.rect(15, 65, 85, 30, "FD"); // Left Box
+        doc.rect(15, 65, 85, 30, "FD");
+        doc.rect(110, 65, 85, 30, "FD");
 
-        doc.rect(110, 65, 85, 30, "FD"); // Right Box
-
-        // Data Retrieval
         const total = document.getElementById("total-count").innerText || "0";
         const density =
           document.getElementById("current-density").innerText || "UNKNOWN";
 
-        // Stat 1: Entities
         doc.setFontSize(20);
         doc.setTextColor(...colors.white);
         doc.text(total, 20, 80);
@@ -1493,9 +2003,7 @@
         doc.setTextColor(...colors.cyan);
         doc.text("ACTIVE ENTITIES", 20, 88);
 
-        // Stat 2: Density Status
         doc.setFontSize(14);
-        // Dynamic Color for Density
         if (density.includes("CRIT") || density.includes("High")) {
           doc.setTextColor(...colors.red);
         } else {
@@ -1506,12 +2014,10 @@
         doc.setTextColor(...colors.cyan);
         doc.text("SECTOR DENSITY", 115, 88);
 
-        // 7. GEO-FENCE MAP VISUALIZATION (Simulated Screenshot)
         doc.setFontSize(10);
         doc.setTextColor(...colors.white);
         doc.text("REAL-TIME SECTOR MAP SNAPSHOT", 15, 110);
 
-        // Map Container
         const mapX = 15;
         const mapY = 115;
         const mapW = 180;
@@ -1522,17 +2028,14 @@
         doc.setLineWidth(0.2);
         doc.rect(mapX, mapY, mapW, mapH, "FD");
 
-        // Map Grid Lines
         doc.setDrawColor(...colors.grid);
         for (let i = 1; i < 10; i++) {
-          // Vertical
           doc.line(
             mapX + i * (mapW / 10),
             mapY,
             mapX + i * (mapW / 10),
             mapY + mapH
           );
-          // Horizontal
           doc.line(
             mapX,
             mapY + i * (mapH / 10),
@@ -1541,7 +2044,6 @@
           );
         }
 
-        // Draw "Geo-Fence" Polygon (Hexagon-ish shape)
         doc.setDrawColor(...colors.cyan);
         doc.setLineWidth(0.5);
         const cx = mapX + mapW / 2;
@@ -1553,7 +2055,6 @@
         doc.line(cx - 30, cy + 30, cx - 50, cy);
         doc.line(cx - 50, cy, cx - 30, cy - 30);
 
-        // Add "Targets" (Random Dots) based on entity count
         const entityCount = parseInt(total) || 5;
         doc.setFillColor(...colors.red);
         for (let k = 0; k < Math.min(entityCount, 20); k++) {
@@ -1562,14 +2063,12 @@
           doc.circle(rx, ry, 1, "F");
         }
 
-        // Map HUD Text
         doc.setFontSize(6);
         doc.setTextColor(...colors.cyan);
         doc.text("SAT-LINK: ACTIVE", mapX + 5, mapY + 8);
         doc.text("ZOOM: 400%", mapX + 5, mapY + mapH - 5);
         doc.text("[ LIVE FEED ]", mapX + mapW - 25, mapY + 8);
 
-        // 8. MISSION CONTEXT (AI Generated)
         doc.setFontSize(10);
         doc.setTextColor(...colors.white);
         doc.text("MISSION CONTEXT & INTELLIGENCE", 15, 220);
@@ -1594,7 +2093,6 @@
           contextY += splitText.length * 4 + 2;
         });
 
-        // 9. Footer
         doc.setFontSize(7);
         doc.setTextColor(80, 80, 80);
         doc.text("S-RAY SYSTEM GENERATED REPORT // DO NOT DISTRIBUTE", 15, 280);
