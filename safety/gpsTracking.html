@@ -295,6 +295,14 @@
       .radar-active {
         animation: radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
       }
+      #landing-logo,
+      img {
+        animation: pulse-logo 2s infinite alternate;
+        width: 70px;
+        display: grid;
+        place-items: center;
+        border-radius: 15px;
+      }
     </style>
   </head>
 
@@ -334,11 +342,7 @@
           class="mx-auto mb-6 w-20 h-20 bg-cyan-900/20 rounded-xl border border-cyan-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(0,240,255,0.3)]"
           id="landing-logo"
         >
-          <i
-            data-lucide="scan-eye"
-            class="w-12 h-12 text-cyan-400"
-            id="landing-logo-icon"
-          ></i>
+          <img src="logo.png" alt="Logo" id="landing-logo" />
         </div>
 
         <h1
@@ -1448,7 +1452,7 @@
       }, 1000);
 
       // ============================================
-      //        CROWDSENSE LOGIC INTEGRATION
+      //         CROWDSENSE LOGIC INTEGRATION
       // ============================================
 
       const GOOGLE_SCRIPT_URL =
@@ -1961,12 +1965,17 @@
         });
 
         // Global alert if total exceeds 30 and user is in sensor-view
+        // STRICT CHECK: Only trigger if > 30
         if (total > 30 && currentView === "sensor-view") {
           logGlobalAlert(total);
           if (localStorage.getItem("sray_lockdown") !== "true") {
             localStorage.setItem("sray_lockdown", "true");
           }
-        } else if (total <= 30 && currentView === "sensor-view" && localStorage.getItem("sray_lockdown") === "true") {
+        } else if (
+          total <= 30 &&
+          currentView === "sensor-view" &&
+          localStorage.getItem("sray_lockdown") === "true"
+        ) {
           // Reset lockdown if total is back to normal
           localStorage.setItem("sray_lockdown", "false");
         }
@@ -1993,8 +2002,9 @@
             let areaColor = "#00f0ff";
             if (area.status === "moderate") areaColor = "#eab308";
 
-            // ALERT LOGIC: If count exceeds 30
-            if (area.currentCount > 30 || area.status === "crowded") {
+            // ALERT LOGIC: STRICTLY If count exceeds 30
+            // Removed || area.status === "crowded" to ensure popup only happens after 30 people reach
+            if (area.currentCount > 30) {
               areaColor = "#ff0000";
               logAlert(area);
               // Set automatic lockdown if limit exceeded
@@ -2051,9 +2061,13 @@
           });
         }
 
-        // Reset lockdown if no areas are over capacity
-        const hasOverCapacity = data.areas && data.areas.some(area => area.currentCount > 30 || area.status === "crowded");
-        if (!hasOverCapacity && localStorage.getItem("sray_lockdown") === "true") {
+        // Check if any area is strictly > 30 for lockdown persistence
+        const hasOverCapacity =
+          data.areas && data.areas.some((area) => area.currentCount > 30);
+        if (
+          !hasOverCapacity &&
+          localStorage.getItem("sray_lockdown") === "true"
+        ) {
           localStorage.setItem("sray_lockdown", "false");
         }
 
@@ -2092,12 +2106,27 @@
           oscillator1.connect(gainNode1);
           gainNode1.connect(audioContext.destination);
           oscillator1.frequency.setValueAtTime(800, audioContext.currentTime);
-          oscillator1.frequency.setValueAtTime(600, audioContext.currentTime + 0.2);
-          oscillator1.frequency.setValueAtTime(400, audioContext.currentTime + 0.4);
-          oscillator1.frequency.setValueAtTime(600, audioContext.currentTime + 0.6);
-          oscillator1.frequency.setValueAtTime(800, audioContext.currentTime + 0.8);
+          oscillator1.frequency.setValueAtTime(
+            600,
+            audioContext.currentTime + 0.2
+          );
+          oscillator1.frequency.setValueAtTime(
+            400,
+            audioContext.currentTime + 0.4
+          );
+          oscillator1.frequency.setValueAtTime(
+            600,
+            audioContext.currentTime + 0.6
+          );
+          oscillator1.frequency.setValueAtTime(
+            800,
+            audioContext.currentTime + 0.8
+          );
           gainNode1.gain.setValueAtTime(0.2, audioContext.currentTime);
-          gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+          gainNode1.gain.exponentialRampToValueAtTime(
+            0.01,
+            audioContext.currentTime + duration
+          );
 
           // Harmonic oscillator (2x frequency)
           const oscillator2 = audioContext.createOscillator();
@@ -2105,12 +2134,27 @@
           oscillator2.connect(gainNode2);
           gainNode2.connect(audioContext.destination);
           oscillator2.frequency.setValueAtTime(1600, audioContext.currentTime);
-          oscillator2.frequency.setValueAtTime(1200, audioContext.currentTime + 0.2);
-          oscillator2.frequency.setValueAtTime(800, audioContext.currentTime + 0.4);
-          oscillator2.frequency.setValueAtTime(1200, audioContext.currentTime + 0.6);
-          oscillator2.frequency.setValueAtTime(1600, audioContext.currentTime + 0.8);
+          oscillator2.frequency.setValueAtTime(
+            1200,
+            audioContext.currentTime + 0.2
+          );
+          oscillator2.frequency.setValueAtTime(
+            800,
+            audioContext.currentTime + 0.4
+          );
+          oscillator2.frequency.setValueAtTime(
+            1200,
+            audioContext.currentTime + 0.6
+          );
+          oscillator2.frequency.setValueAtTime(
+            1600,
+            audioContext.currentTime + 0.8
+          );
           gainNode2.gain.setValueAtTime(0.1, audioContext.currentTime);
-          gainNode2.gain.exponentialRampToValueAtTime(0.005, audioContext.currentTime + duration);
+          gainNode2.gain.exponentialRampToValueAtTime(
+            0.005,
+            audioContext.currentTime + duration
+          );
 
           // Low frequency oscillator for depth
           const oscillator3 = audioContext.createOscillator();
@@ -2118,9 +2162,15 @@
           oscillator3.connect(gainNode3);
           gainNode3.connect(audioContext.destination);
           oscillator3.frequency.setValueAtTime(100, audioContext.currentTime);
-          oscillator3.frequency.linearRampToValueAtTime(50, audioContext.currentTime + duration);
+          oscillator3.frequency.linearRampToValueAtTime(
+            50,
+            audioContext.currentTime + duration
+          );
           gainNode3.gain.setValueAtTime(0.05, audioContext.currentTime);
-          gainNode3.gain.exponentialRampToValueAtTime(0.002, audioContext.currentTime + duration);
+          gainNode3.gain.exponentialRampToValueAtTime(
+            0.002,
+            audioContext.currentTime + duration
+          );
 
           oscillator1.start(audioContext.currentTime);
           oscillator2.start(audioContext.currentTime);
@@ -2254,7 +2304,10 @@
             method: "POST",
             body: JSON.stringify(fakeData),
           }).catch((e) => {
-            console.log("Simulation data upload failed (expected in offline mode):", e);
+            console.log(
+              "Simulation data upload failed (expected in offline mode):",
+              e
+            );
           });
         }
 

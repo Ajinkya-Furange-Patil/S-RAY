@@ -1049,7 +1049,7 @@
             
             <div class="nav-links">
                 <a href="#overview" class="nav-link">Features</a>
-                <a href="#live-data" class="nav-link">Live Data</a>
+                <!-- <a href="#live-data" class="nav-link">Live Data</a> -->
                 <a href="#safety" class="nav-link">Safety</a>
                 <a href="#about" class="nav-link">Contact</a>
             </div>
@@ -1170,68 +1170,6 @@
         </div>
     </section>
     <!-- AI MONITOR -->
-    <section id="ai-monitor">
-      <div class="container">
-        <div class="reveal" style="text-align: center; margin-bottom: 3rem">
-          <h2 class="section-title">AI Population Monitor</h2>
-          <p>Autonomous decision making based on live zone density.</p>
-        </div>
-
-        <div class="ai-layout-wrapper reveal">
-          <!-- Card Grid -->
-          <div class="ai-dashboard-grid" id="zone-grid">
-            <!-- Cards injected by JS -->
-          </div>
-
-          <!-- Log Panel -->
-          <div>
-            <div
-              style="
-                margin-bottom: 0.5rem;
-                font-size: 0.8rem;
-                font-weight: 600;
-                color: var(--text-dim);
-                letter-spacing: 1px;
-              "
-            >
-              LIVE SYSTEM LOG
-            </div>
-            <div class="system-log" id="system-log-container">
-              <div class="log-entry">
-                <span class="log-time">System</span
-                ><span>Initializing AI tracking nodes...</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- NEW: GEMINI AI ASSISTANT PANEL -->
-          <div class="glass-panel ai-assistant-panel">
-            <div class="gemini-header">
-              <div class="gemini-title">
-                <span style="font-size: 1.2rem">✨</span>
-                Gemini Tactical Assistant
-              </div>
-              <div class="gemini-controls">
-                <button class="gemini-btn" onclick="generateStrategy()">
-                  Analyze Strategy ✨
-                </button>
-                <button class="gemini-btn" onclick="generateAnnouncement()">
-                  Draft PA Announcement ✨
-                </button>
-              </div>
-            </div>
-            <div
-              style="font-size: 0.9rem; color: #bda5f3; margin-bottom: 0.5rem"
-            >
-              AI RESPONSE TERMINAL
-            </div>
-            <div class="gemini-output-area" id="gemini-output">
-              System ready. Waiting for query...
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
      <!-- NEW SMART EXIT GUIDANCE SECTION -->
     <section id="safety" class="section-spacer">
@@ -1553,8 +1491,8 @@ We envision a future where technology works silently and responsibly to protect 
         const outputArea = document.getElementById("gemini-output");
         outputArea.innerHTML =
           "Processing data<span class='typing-indicator'>...</span>";
-
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+const apikey = "AIzaSyDbSLiEwTLM2-kAYLa_lXJSU432wHJLCk4"
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apikey}`;
 
         const payload = {
           contents: [{ parts: [{ text: prompt }] }],
