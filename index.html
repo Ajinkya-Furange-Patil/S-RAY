@@ -1491,8 +1491,8 @@ We envision a future where technology works silently and responsibly to protect 
         const outputArea = document.getElementById("gemini-output");
         outputArea.innerHTML =
           "Processing data<span class='typing-indicator'>...</span>";
-const apikey = "AIzaSyDbSLiEwTLM2-kAYLa_lXJSU432wHJLCk4"
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apikey}`;
+
+        // const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apikey}`;
 
         const payload = {
           contents: [{ parts: [{ text: prompt }] }],
